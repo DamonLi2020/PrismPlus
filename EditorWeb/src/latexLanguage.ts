@@ -19,6 +19,21 @@ export interface CompletionContext {
   consumeAfterCursor: number;
 }
 
+export interface EditorDiagnostic {
+  severity: "error" | "warning";
+  message: string;
+  line?: number | null;
+}
+
+export interface DiagnosticMarker {
+  severity: "error" | "warning";
+  message: string;
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+}
+
 export const autoClosingPairs = [
   { open: "\\left(", close: "\\right)" },
   { open: "\\left[", close: "\\right]" },
@@ -288,6 +303,28 @@ export function sourcePositionAfterChange(
   };
 }
 
+export function diagnosticMarkers(
+  diagnostics: EditorDiagnostic[],
+  sourceLines: string[],
+): DiagnosticMarker[] {
+  if (sourceLines.length === 0) return [];
+  return diagnostics.flatMap((diagnostic) => {
+    if (diagnostic.line == null || !Number.isFinite(diagnostic.line)) return [];
+    const line = Math.min(Math.max(Math.trunc(diagnostic.line), 1), sourceLines.length);
+    const content = sourceLines[line - 1] ?? "";
+    const firstContentIndex = content.search(/\S/);
+    const startColumn = firstContentIndex >= 0 ? firstContentIndex + 1 : 1;
+    return [{
+      severity: diagnostic.severity,
+      message: diagnostic.message,
+      startLineNumber: line,
+      startColumn,
+      endLineNumber: line,
+      endColumn: Math.max(startColumn + 1, content.length + 1),
+    }];
+  });
+}
+
 const protectedEnvironments = new Set([
   "align",
   "align*",
@@ -374,20 +411,26 @@ export function formatLaTeX(source: string, lineWidth = 88): string {
 
 function wrapWords(words: string[], indentation: number, lineWidth: number): string[] {
   const prefix = "  ".repeat(indentation);
+  const continuationPrefix = `${prefix}  `;
   const width = Math.max(lineWidth, prefix.length + 20);
   const lines: string[] = [];
   let current = prefix;
+  let currentPrefix = prefix;
 
   for (const word of words) {
-    const separator = current === prefix ? "" : " ";
-    if (current.length > prefix.length && current.length + separator.length + word.length > width) {
+    const separator = current === currentPrefix ? "" : " ";
+    if (
+      current.length > currentPrefix.length &&
+      current.length + separator.length + word.length > width
+    ) {
       lines.push(current);
-      current = `${prefix}${word}`;
+      currentPrefix = continuationPrefix;
+      current = `${currentPrefix}${word}`;
     } else {
       current += `${separator}${word}`;
     }
   }
-  if (current.length > prefix.length) lines.push(current);
+  if (current.length > currentPrefix.length) lines.push(current);
   return lines;
 }
 

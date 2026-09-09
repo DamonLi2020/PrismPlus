@@ -108,11 +108,7 @@ struct WorkspaceView: View {
                 ProjectExplorerView(model: model)
                     .frame(minHeight: 220, idealHeight: 440, maxHeight: .infinity)
                 DocumentOutlineView(items: model.outlineItems) { line in
-                    nextNavigationRequestID += 1
-                    navigationRequest = EditorNavigationRequest(
-                        id: nextNavigationRequestID,
-                        line: line
-                    )
+                    navigateToSourceLine(line)
                 }
                 .frame(minHeight: 120, idealHeight: 220, maxHeight: .infinity)
             }
@@ -228,7 +224,8 @@ struct WorkspaceView: View {
             MonacoEditorView(
                 text: model.source,
                 formatRequestID: formatRequestID,
-                navigationRequest: navigationRequest
+                navigationRequest: navigationRequest,
+                diagnostics: model.diagnostics
             ) {
                 source, deferAutomaticCompilation in
                 model.updateSource(
@@ -276,20 +273,17 @@ struct WorkspaceView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 7) {
                     ForEach(model.diagnostics) { diagnostic in
-                        HStack(alignment: .firstTextBaseline, spacing: 7) {
-                            Image(
-                                systemName: diagnostic.severity == .error
-                                    ? "xmark.circle.fill" : "exclamationmark.triangle.fill"
-                            )
-                            .foregroundStyle(
-                                diagnostic.severity == .error ? Color.red : Color.orange
-                            )
-                            Text(diagnostic.line.map { "Line \($0): " } ?? "")
-                                .foregroundStyle(.secondary)
-                            Text(diagnostic.message)
-                                .textSelection(.enabled)
+                        if let line = diagnostic.line {
+                            Button {
+                                navigateToSourceLine(line)
+                            } label: {
+                                diagnosticRow(diagnostic)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Jump to line \(line)")
+                        } else {
+                            diagnosticRow(diagnostic)
                         }
-                        .font(.system(size: 12, design: .monospaced))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -298,6 +292,31 @@ struct WorkspaceView: View {
             .frame(maxHeight: 150)
             .background(Color.black.opacity(0.18))
         }
+    }
+
+    private func diagnosticRow(_ diagnostic: CompilationDiagnostic) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            Image(
+                systemName: diagnostic.severity == .error
+                    ? "xmark.circle.fill" : "exclamationmark.triangle.fill"
+            )
+            .foregroundStyle(diagnostic.severity == .error ? Color.red : Color.orange)
+            Text(diagnostic.line.map { "Line \($0): " } ?? "")
+                .foregroundStyle(.secondary)
+            Text(diagnostic.message)
+                .textSelection(.enabled)
+            Spacer(minLength: 0)
+        }
+        .font(.system(size: 12, design: .monospaced))
+        .contentShape(Rectangle())
+    }
+
+    private func navigateToSourceLine(_ line: Int) {
+        nextNavigationRequestID += 1
+        navigationRequest = EditorNavigationRequest(
+            id: nextNavigationRequestID,
+            line: line
+        )
     }
 
     private var previewPane: some View {

@@ -14,13 +14,13 @@ The current vertical slice provides:
 - a resizable document outline with standard LaTeX heading hierarchy and click-to-jump navigation;
 - an embedded offline Monaco editor—the same editor core used by VS Code;
 - readable syntax highlighting, command suggestions, snippets, delimiter pairing, indentation,
-  keyboard completion navigation, responsive word wrapping, and conservative LaTeX-aware prose
+  keyboard completion navigation, indented word wrapping, and conservative LaTeX-aware prose
   formatting;
 - debounced local compilation through Tectonic;
 - a stable PDFKit preview that preserves the current page, zoom, and scroll position;
 - PDF download with a Downloads-folder default and one-click PDF creation beside saved sources;
 - mandatory untrusted compilation with no shell invocation;
-- compiler status, logs, and line-addressable diagnostics;
+- compiler status, logs, clickable diagnostics, and VS Code-style red/yellow source markers;
 - a reproducible Xcode project and test-first workflow.
 
 ## Requirements

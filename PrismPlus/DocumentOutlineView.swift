@@ -59,7 +59,8 @@ struct DocumentOutlineView: View {
                             .buttonStyle(.plain)
                             .frame(height: 24)
                         }
-                        .padding(.horizontal, 8)
+                        .padding(.leading, 16)
+                        .padding(.trailing, 8)
                         .padding(.vertical, 6)
                     }
                 }

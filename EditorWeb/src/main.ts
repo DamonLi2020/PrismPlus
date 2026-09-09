@@ -6,6 +6,8 @@ import {
   autoClosingPairs,
   completionContext,
   completionItemsForContext,
+  diagnosticMarkers,
+  type EditorDiagnostic,
   formatLaTeX,
   shouldDeferCompilation,
   shouldTriggerSuggestions,
@@ -18,6 +20,7 @@ type BridgeWindow = Window & {
     focus: () => void;
     format: () => void;
     revealLine: (line: number) => void;
+    setDiagnostics: (diagnostics: EditorDiagnostic[]) => void;
     setSource: (source: string) => void;
   };
   webkit?: {
@@ -84,6 +87,10 @@ monaco.editor.defineTheme("prism-plus", {
     "editorSuggestWidget.background": "#1A1F2A",
     "editorSuggestWidget.border": "#3A4354",
     "editorSuggestWidget.selectedBackground": "#244A73",
+    "editorError.foreground": "#FF5C5C",
+    "editorWarning.foreground": "#E6B450",
+    "editorOverviewRuler.errorForeground": "#FF5C5C",
+    "editorOverviewRuler.warningForeground": "#E6B450",
   },
 });
 
@@ -101,7 +108,7 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
   scrollBeyondLastLine: false,
   wordWrap: "bounded",
   wordWrapColumn: 100,
-  wrappingIndent: "same",
+  wrappingIndent: "indent",
   wrappingStrategy: "advanced",
   smoothScrolling: true,
   cursorSmoothCaretAnimation: "on",
@@ -219,6 +226,25 @@ bridgeWindow.prismPlus = {
     editor.setPosition({ lineNumber: safeLine, column: 1 });
     editor.revealLineInCenterIfOutsideViewport(safeLine);
     editor.focus();
+  },
+  setDiagnostics(diagnostics: EditorDiagnostic[]) {
+    const model = editor.getModel();
+    if (!model) return;
+    const sourceLines = Array.from(
+      { length: model.getLineCount() },
+      (_, index) => model.getLineContent(index + 1),
+    );
+    monaco.editor.setModelMarkers(
+      model,
+      "prism-plus",
+      diagnosticMarkers(diagnostics, sourceLines).map((marker) => ({
+        ...marker,
+        severity:
+          marker.severity === "error"
+            ? monaco.MarkerSeverity.Error
+            : monaco.MarkerSeverity.Warning,
+      })),
+    );
   },
   setSource(source: string) {
     if (editor.getValue() === source) return;

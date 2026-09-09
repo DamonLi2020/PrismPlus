@@ -10,7 +10,7 @@ SwiftUI workspace
   │    └─ current-file LaTeX outline and source-line navigation
   ├─ Monaco LaTeX editor in a local-only WKWebView
   │    ├─ language configuration and snippets (TypeScript)
-  │    └─ narrow Swift/JavaScript source and readiness bridge
+  │    └─ narrow Swift/JavaScript source, navigation, readiness, and diagnostics bridge
   ├─ WorkspaceViewModel (@MainActor)
   │    └─ LaTeXCompiling protocol
   │         └─ TectonicCompiler actor
@@ -31,6 +31,10 @@ formatting. Formatting visually wraps source at the viewport and conservatively 
 prose while preserving commands, comments, math, tables, and code-like environments. Vite packages
 the editor into local application resources. A private read-only WebKit URL
 scheme serves only files beneath that resource directory, so the editor needs no server or network.
+
+Compiler diagnostics with source lines are mapped to Monaco markers, while general diagnostics
+remain available in the native panel. Both outline entries and line-addressable diagnostic rows use
+the same bounded source-navigation command, keeping invalid line numbers from escaping the editor.
 
 PDF replacement is performed in place with animation disabled while preserving page, destination,
 and zoom. Exported PDF data is written atomically either to a user-selected destination (starting

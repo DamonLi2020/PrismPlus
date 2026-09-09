@@ -55,9 +55,9 @@ final class WorkspaceViewModel: ObservableObject {
         source = updatedSource
         outlineItems = LaTeXOutlineParser.parse(updatedSource)
         isDirty = true
+        diagnostics = []
         if deferAutomaticCompilation {
             compilationTask?.cancel()
-            diagnostics = []
             buildState = .waiting
         } else {
             scheduleCompilation()

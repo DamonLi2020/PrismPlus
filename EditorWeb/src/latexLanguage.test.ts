@@ -4,6 +4,7 @@ import {
   completionContext,
   completionItems,
   completionItemsForContext,
+  diagnosticMarkers,
   formatLaTeX,
   shouldDeferCompilation,
   shouldTriggerSuggestions,
@@ -125,8 +126,8 @@ describe("LaTeX language intelligence", () => {
         "\\begin{document}",
         "\\section{Introduction}",
         "This is a deliberately long prose",
-        "paragraph that should wrap into readable",
-        "source lines.",
+        "  paragraph that should wrap into readable",
+        "  source lines.",
         "\\textbf{This command line remains intact even when it is longer than the selected width.}",
         "\\end{document}",
         "",
@@ -150,5 +151,35 @@ describe("LaTeX language intelligence", () => {
     expect(formatted).toContain("% A long comment remains exactly as the author wrote it");
     expect(formatted).toContain("  value &= first + second + third + fourth + fifth \\\\");
     expect(formatted).toContain("  A very long cell & Another cell \\\\");
+  });
+
+  it("maps line diagnostics to clamped red and yellow source markers", () => {
+    const markers = diagnosticMarkers(
+      [
+        { severity: "error", message: "Undefined control sequence.", line: 2 },
+        { severity: "warning", message: "Reference is undefined.", line: 99 },
+        { severity: "warning", message: "General warning.", line: null },
+      ],
+      ["first", "  \\badcommand", "last"],
+    );
+
+    expect(markers).toEqual([
+      {
+        severity: "error",
+        message: "Undefined control sequence.",
+        startLineNumber: 2,
+        startColumn: 3,
+        endLineNumber: 2,
+        endColumn: 14,
+      },
+      {
+        severity: "warning",
+        message: "Reference is undefined.",
+        startLineNumber: 3,
+        startColumn: 1,
+        endLineNumber: 3,
+        endColumn: 5,
+      },
+    ]);
   });
 });

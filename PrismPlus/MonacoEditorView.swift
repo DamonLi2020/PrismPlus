@@ -10,6 +10,7 @@ struct MonacoEditorView: NSViewRepresentable {
     var text: String
     var formatRequestID: Int
     var navigationRequest: EditorNavigationRequest?
+    var diagnostics: [CompilationDiagnostic]
     var onSourceChange: (String, Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -41,7 +42,8 @@ struct MonacoEditorView: NSViewRepresentable {
             schemeHandler: schemeHandler,
             source: text,
             formatRequestID: formatRequestID,
-            navigationRequest: navigationRequest
+            navigationRequest: navigationRequest,
+            diagnostics: diagnostics
         )
 
         webView.load(URLRequest(url: LocalEditorSchemeHandler.indexURL))
@@ -53,6 +55,7 @@ struct MonacoEditorView: NSViewRepresentable {
             source: text,
             formatRequestID: formatRequestID,
             navigationRequest: navigationRequest,
+            diagnostics: diagnostics,
             onSourceChange: onSourceChange
         )
     }
@@ -78,6 +81,8 @@ struct MonacoEditorView: NSViewRepresentable {
         private var lastFormatRequestID = 0
         private var pendingNavigationRequest: EditorNavigationRequest?
         private var lastNavigationRequestID = 0
+        private var pendingDiagnostics: [CompilationDiagnostic] = []
+        private var lastSentDiagnosticsJSON: String?
 
         init(source: String, onSourceChange: @escaping (String, Bool) -> Void) {
             currentSource = source
@@ -89,19 +94,22 @@ struct MonacoEditorView: NSViewRepresentable {
             schemeHandler: LocalEditorSchemeHandler,
             source: String,
             formatRequestID: Int,
-            navigationRequest: EditorNavigationRequest?
+            navigationRequest: EditorNavigationRequest?,
+            diagnostics: [CompilationDiagnostic]
         ) {
             self.webView = webView
             self.schemeHandler = schemeHandler
             pendingSource = source
             pendingFormatRequestID = formatRequestID
             pendingNavigationRequest = navigationRequest
+            pendingDiagnostics = diagnostics
         }
 
         func update(
             source: String,
             formatRequestID: Int,
             navigationRequest: EditorNavigationRequest?,
+            diagnostics: [CompilationDiagnostic],
             onSourceChange: @escaping (String, Bool) -> Void
         ) {
             currentSource = source
@@ -109,6 +117,7 @@ struct MonacoEditorView: NSViewRepresentable {
             pendingSource = source
             pendingFormatRequestID = formatRequestID
             pendingNavigationRequest = navigationRequest
+            pendingDiagnostics = diagnostics
             synchronizeIfReady()
         }
 
@@ -147,6 +156,15 @@ struct MonacoEditorView: NSViewRepresentable {
                 webView.evaluateJavaScript("window.prismPlus?.setSource(\(sourceLiteral));")
             }
 
+            if let diagnosticsJSON = try? Self.javaScriptDiagnostics(pendingDiagnostics),
+                diagnosticsJSON != lastSentDiagnosticsJSON
+            {
+                lastSentDiagnosticsJSON = diagnosticsJSON
+                webView.evaluateJavaScript(
+                    "window.prismPlus?.setDiagnostics(\(diagnosticsJSON));"
+                )
+            }
+
             if pendingFormatRequestID != lastFormatRequestID {
                 lastFormatRequestID = pendingFormatRequestID
                 webView.evaluateJavaScript("window.prismPlus?.format();")
@@ -165,6 +183,28 @@ struct MonacoEditorView: NSViewRepresentable {
             guard let encoded = String(data: data, encoding: .utf8) else {
                 throw EncodingError.invalidValue(
                     value,
+                    EncodingError.Context(codingPath: [], debugDescription: "Invalid UTF-8")
+                )
+            }
+            return encoded
+        }
+
+        private static func javaScriptDiagnostics(
+            _ diagnostics: [CompilationDiagnostic]
+        ) throws -> String {
+            struct Payload: Encodable {
+                let severity: String
+                let message: String
+                let line: Int?
+            }
+
+            let payloads = diagnostics.map {
+                Payload(severity: $0.severity.rawValue, message: $0.message, line: $0.line)
+            }
+            let data = try JSONEncoder().encode(payloads)
+            guard let encoded = String(data: data, encoding: .utf8) else {
+                throw EncodingError.invalidValue(
+                    diagnostics,
                     EncodingError.Context(codingPath: [], debugDescription: "Invalid UTF-8")
                 )
             }
