@@ -1,6 +1,14 @@
 import * as monaco from "monaco-editor/editor/editor.api.js";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker&inline";
-import { autoClosingPairs, completionItems, formatLaTeX } from "./latexLanguage";
+import "monaco-editor/editor/contrib/format/browser/formatActions.js";
+import "monaco-editor/editor/contrib/suggest/browser/suggestController.js";
+import {
+  autoClosingPairs,
+  completionContext,
+  completionItemsForContext,
+  formatLaTeX,
+  shouldTriggerSuggestions,
+} from "./latexLanguage";
 import "./style.css";
 
 type BridgeWindow = Window & {
@@ -107,18 +115,21 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
 });
 
 monaco.languages.registerCompletionItemProvider("latex", {
-  triggerCharacters: ["\\"],
+  triggerCharacters: ["\\", "{"],
   provideCompletionItems(model, position) {
-    const linePrefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
-    const command = linePrefix.match(/\\[A-Za-z@]*$/)?.[0] ?? "";
+    const line = model.getLineContent(position.lineNumber);
+    const lineBeforeCursor = line.slice(0, position.column - 1);
+    const lineAfterCursor = line.slice(position.column - 1);
+    const context = completionContext(lineBeforeCursor, lineAfterCursor);
+    if (!context) return { suggestions: [] };
     const range = new monaco.Range(
       position.lineNumber,
-      position.column - command.length,
+      position.column - context.prefix.length,
       position.lineNumber,
-      position.column,
+      position.column + context.consumeAfterCursor,
     );
     return {
-      suggestions: completionItems(command).map((item) => ({
+      suggestions: completionItemsForContext(context).map((item) => ({
         label: item.label,
         detail: item.detail,
         documentation: item.documentation,
@@ -129,6 +140,20 @@ monaco.languages.registerCompletionItemProvider("latex", {
       })),
     };
   },
+});
+
+editor.onDidType((typedText) => {
+  const position = editor.getPosition();
+  const model = editor.getModel();
+  if (!position || !model) return;
+  const lineBeforeCursor = model
+    .getLineContent(position.lineNumber)
+    .slice(0, position.column - 1);
+  if (!shouldTriggerSuggestions(lineBeforeCursor, typedText)) return;
+
+  requestAnimationFrame(() => {
+    void editor.getAction("editor.action.triggerSuggest")?.run();
+  });
 });
 
 monaco.languages.registerDocumentFormattingEditProvider("latex", {

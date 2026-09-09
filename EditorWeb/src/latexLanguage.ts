@@ -5,6 +5,19 @@ export interface CompletionItem {
   insertText: string;
 }
 
+export type CompletionContextKind =
+  | "command"
+  | "beginEnvironment"
+  | "endEnvironment"
+  | "package"
+  | "documentClass";
+
+export interface CompletionContext {
+  kind: CompletionContextKind;
+  prefix: string;
+  consumeAfterCursor: number;
+}
+
 export const autoClosingPairs = [
   { open: "\\left(", close: "\\right)" },
   { open: "\\left[", close: "\\right]" },
@@ -92,9 +105,104 @@ const completions: CompletionItem[] = [
   snippet("\\maketitle", "Render title", "\\maketitle"),
 ];
 
+const environments = [
+  environment("align", "Aligned equations", "${1:left} &= ${2:right} \\\\"),
+  environment("align*", "Unnumbered aligned equations", "${1:left} &= ${2:right} \\\\"),
+  environment("document", "Document body"),
+  environment("enumerate", "Numbered list", "\\item ${1:item}"),
+  environment("equation", "Numbered equation", "${1:expression}"),
+  environment("equation*", "Unnumbered equation", "${1:expression}"),
+  environment("figure", "Floating figure", "\\centering\n\\caption{${1:caption}}\n\\label{fig:${2:key}}"),
+  environment("gather", "Gathered equations", "${1:expression} \\\\"),
+  environment("itemize", "Bulleted list", "\\item ${1:item}"),
+  environment("matrix", "Matrix", "${1:a} & ${2:b} \\\\\n${3:c} & ${4:d}"),
+  environment("multicols", "Multiple columns", "$0"),
+  environment("proof", "Proof", "$0"),
+  environment("table", "Floating table", "\\centering\n\\caption{${1:caption}}\n\\label{tab:${2:key}}"),
+  environment("tabular", "Table grid", "${1:lcr}\n${2:content}"),
+  environment("theorem", "Theorem", "$0"),
+  environment("tikzcd", "Commutative diagram", "$0"),
+];
+
+const packages = [
+  "amsmath",
+  "amssymb",
+  "biblatex",
+  "booktabs",
+  "cleveref",
+  "enumitem",
+  "fontspec",
+  "geometry",
+  "graphicx",
+  "hyperref",
+  "mathtools",
+  "microtype",
+  "multicol",
+  "tikz",
+  "tikz-cd",
+  "xcolor",
+];
+
+const documentClasses = ["article", "book", "letter", "memoir", "report", "standalone"];
+
 export function completionItems(prefix: string): CompletionItem[] {
   if (!prefix.startsWith("\\")) return [];
   return completions.filter((item) => item.label.startsWith(prefix));
+}
+
+export function completionContext(
+  lineBeforeCursor: string,
+  lineAfterCursor: string,
+): CompletionContext | undefined {
+  const argumentContexts: Array<[RegExp, CompletionContextKind]> = [
+    [/\\begin\{([^{}]*)$/, "beginEnvironment"],
+    [/\\end\{([^{}]*)$/, "endEnvironment"],
+    [/\\usepackage(?:\[[^\]]*\])?\{([^{}]*)$/, "package"],
+    [/\\documentclass(?:\[[^\]]*\])?\{([^{}]*)$/, "documentClass"],
+  ];
+
+  for (const [pattern, kind] of argumentContexts) {
+    const match = lineBeforeCursor.match(pattern);
+    if (match) {
+      return {
+        kind,
+        prefix: match[1] ?? "",
+        consumeAfterCursor: lineAfterCursor.startsWith("}") ? 1 : 0,
+      };
+    }
+  }
+
+  const command = lineBeforeCursor.match(/\\[A-Za-z@]*$/)?.[0];
+  if (!command) return undefined;
+  return { kind: "command", prefix: command, consumeAfterCursor: 0 };
+}
+
+export function completionItemsForContext(context: CompletionContext): CompletionItem[] {
+  switch (context.kind) {
+    case "command":
+      return completionItems(context.prefix);
+    case "beginEnvironment":
+      return environments.filter((item) => item.label.startsWith(context.prefix));
+    case "endEnvironment":
+      return environments
+        .filter((item) => item.label.startsWith(context.prefix))
+        .map((item) => value(item.label, "Close environment", `${item.label}}`));
+    case "package":
+      return packages
+        .filter((name) => name.startsWith(context.prefix))
+        .map((name) => value(name, "LaTeX package", `${name}}`));
+    case "documentClass":
+      return documentClasses
+        .filter((name) => name.startsWith(context.prefix))
+        .map((name) => value(name, "Document class", `${name}}`));
+  }
+}
+
+export function shouldTriggerSuggestions(lineBeforeCursor: string, typedText: string): boolean {
+  if (typedText === "\\") return !lineBeforeCursor.endsWith("\\\\");
+  if (typedText !== "{") return false;
+  const context = completionContext(lineBeforeCursor, "");
+  return context !== undefined && context.kind !== "command";
 }
 
 export function formatLaTeX(source: string): string {
@@ -135,4 +243,12 @@ function snippet(label: string, detail: string, insertText: string): CompletionI
     documentation: `${detail} snippet`,
     insertText,
   };
+}
+
+function environment(name: string, detail: string, body = "$0"): CompletionItem {
+  return snippet(name, detail, `${name}}\n\t${body}\n\\end{${name}}`);
+}
+
+function value(label: string, detail: string, insertText: string): CompletionItem {
+  return { label, detail, documentation: detail, insertText };
 }
