@@ -33,13 +33,38 @@ export const autoClosingPairs = [
 ];
 
 const completions: CompletionItem[] = [
-  snippet("\\section", "Section", "\\section{${1:title}}"),
-  snippet("\\section*", "Unnumbered section", "\\section*{${1:title}}"),
-  snippet("\\subsection", "Subsection", "\\subsection{${1:title}}"),
-  snippet("\\subsubsection", "Subsubsection", "\\subsubsection{${1:title}}"),
-  snippet("\\documentclass", "Document class", "\\documentclass[${1:options}]{${2:article}}"),
-  snippet("\\usepackage", "Package import", "\\usepackage[${1:options}]{${2:package}}"),
-  snippet("\\begin", "Environment", "\\begin{${1:environment}}\n\t$0\n\\end{${1:environment}}"),
+  snippet("\\section", "Section", "\\section{${1:title}}", "Creates a numbered section."),
+  snippet(
+    "\\section*",
+    "Unnumbered section",
+    "\\section*{${1:title}}",
+    "Creates a section without a number or table-of-contents entry.",
+  ),
+  snippet("\\subsection", "Subsection", "\\subsection{${1:title}}", "Creates a numbered subsection."),
+  snippet(
+    "\\subsubsection",
+    "Subsubsection",
+    "\\subsubsection{${1:title}}",
+    "Creates a numbered third-level section.",
+  ),
+  snippet(
+    "\\documentclass",
+    "Document class",
+    "\\documentclass[${1:options}]{${2:article}}",
+    "Selects the document type and its optional class settings.",
+  ),
+  snippet(
+    "\\usepackage",
+    "Package import",
+    "\\usepackage[${1:options}]{${2:package}}",
+    "Loads a LaTeX package with optional configuration.",
+  ),
+  snippet(
+    "\\begin",
+    "Environment",
+    "\\begin{${1:environment}}\n\t$0\n\\end{${1:environment}}",
+    "Creates a matched LaTeX environment and places the cursor inside it.",
+  ),
   snippet("\\begin{document}", "Document environment", "\\begin{document}\n$0\n\\end{document}"),
   snippet("\\begin{itemize}", "Bulleted list", "\\begin{itemize}\n\t\\item ${1:item}\n\\end{itemize}"),
   snippet("\\begin{enumerate}", "Numbered list", "\\begin{enumerate}\n\t\\item ${1:item}\n\\end{enumerate}"),
@@ -186,15 +211,39 @@ export function completionItemsForContext(context: CompletionContext): Completio
     case "endEnvironment":
       return environments
         .filter((item) => item.label.startsWith(context.prefix))
-        .map((item) => value(item.label, "Close environment", `${item.label}}`));
+        .map((item) =>
+          value(
+            item.label,
+            "Close environment",
+            `${item.label}}`,
+            `Closes the current ${item.label} environment.`,
+            `\\end{${item.label}}`,
+          ),
+        );
     case "package":
       return packages
         .filter((name) => name.startsWith(context.prefix))
-        .map((name) => value(name, "LaTeX package", `${name}}`));
+        .map((name) =>
+          value(
+            name,
+            "LaTeX package",
+            `${name}}`,
+            `Loads the ${name} package in the document preamble.`,
+            `\\usepackage{${name}}`,
+          ),
+        );
     case "documentClass":
       return documentClasses
         .filter((name) => name.startsWith(context.prefix))
-        .map((name) => value(name, "Document class", `${name}}`));
+        .map((name) =>
+          value(
+            name,
+            "Document class",
+            `${name}}`,
+            `Uses ${name} as the document's overall layout class.`,
+            `\\documentclass{${name}}`,
+          ),
+        );
   }
 }
 
@@ -236,19 +285,54 @@ export function formatLaTeX(source: string): string {
   return `${output.join("\n")}\n`;
 }
 
-function snippet(label: string, detail: string, insertText: string): CompletionItem {
+function snippet(
+  label: string,
+  detail: string,
+  insertText: string,
+  description = `Inserts the ${detail.toLowerCase()} syntax.`,
+): CompletionItem {
   return {
     label,
     detail,
-    documentation: `${detail} snippet`,
+    documentation: documentation(detail, description, snippetExample(insertText)),
     insertText,
   };
 }
 
 function environment(name: string, detail: string, body = "$0"): CompletionItem {
-  return snippet(name, detail, `${name}}\n\t${body}\n\\end{${name}}`);
+  const insertion = `${name}}\n\t${body}\n\\end{${name}}`;
+  const example = `\\begin{${snippetExample(insertion)}`;
+  return {
+    label: name,
+    detail,
+    documentation: documentation(
+      detail,
+      `Creates a matched ${name} environment and places the cursor inside it.`,
+      example,
+    ),
+    insertText: insertion,
+  };
 }
 
-function value(label: string, detail: string, insertText: string): CompletionItem {
-  return { label, detail, documentation: detail, insertText };
+function value(
+  label: string,
+  detail: string,
+  insertText: string,
+  description: string,
+  example: string,
+): CompletionItem {
+  return {
+    label,
+    detail,
+    documentation: documentation(detail, description, example),
+    insertText,
+  };
+}
+
+function snippetExample(insertText: string): string {
+  return insertText.replace(/\$\{\d+:([^}]*)}/g, "$1").replace(/\$\d+/g, "content");
+}
+
+function documentation(title: string, description: string, example: string): string {
+  return `**${title}**\n\n${description}\n\n\`\`\`latex\n${example}\n\`\`\``;
 }

@@ -14,6 +14,9 @@ describe("LaTeX language intelligence", () => {
 
     expect(results[0]?.label).toBe("\\section");
     expect(results[0]?.insertText).toBe("\\section{${1:title}}");
+    expect(results[0]?.documentation).toContain("Creates a numbered section");
+    expect(results[0]?.documentation).toContain("```latex\n\\section{title}\n```");
+    expect(results[0]?.documentation).not.toContain("${1:");
     expect(results.some((item) => item.label === "\\subsection")).toBe(false);
     expect(completionItems("\\alp")[0]?.label).toBe("\\alpha");
     expect(completionItems("\\begin{").length).toBeGreaterThan(5);

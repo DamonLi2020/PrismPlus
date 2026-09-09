@@ -132,7 +132,7 @@ monaco.languages.registerCompletionItemProvider("latex", {
       suggestions: completionItemsForContext(context).map((item) => ({
         label: item.label,
         detail: item.detail,
-        documentation: item.documentation,
+        documentation: { value: item.documentation, isTrusted: false },
         insertText: item.insertText,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
         kind: monaco.languages.CompletionItemKind.Snippet,
@@ -141,6 +141,20 @@ monaco.languages.registerCompletionItemProvider("latex", {
     };
   },
 });
+
+let suggestionDetailsExpanded = false;
+
+function showSuggestions(): void {
+  void editor.getAction("editor.action.triggerSuggest")?.run().then(() => {
+    if (suggestionDetailsExpanded) return;
+    window.setTimeout(() => {
+      editor.trigger("prism-plus", "toggleSuggestionDetails", null);
+      suggestionDetailsExpanded = true;
+    }, 100);
+  });
+}
+
+editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Space, showSuggestions);
 
 editor.onDidType((typedText) => {
   const position = editor.getPosition();
@@ -151,9 +165,7 @@ editor.onDidType((typedText) => {
     .slice(0, position.column - 1);
   if (!shouldTriggerSuggestions(lineBeforeCursor, typedText)) return;
 
-  requestAnimationFrame(() => {
-    void editor.getAction("editor.action.triggerSuggest")?.run();
-  });
+  requestAnimationFrame(showSuggestions);
 });
 
 monaco.languages.registerDocumentFormattingEditProvider("latex", {
