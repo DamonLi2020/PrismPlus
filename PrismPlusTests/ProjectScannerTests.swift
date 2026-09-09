@@ -4,7 +4,7 @@ import Testing
 @testable import PrismPlus
 
 struct ProjectScannerTests {
-    @Test("Project scanner builds a sorted tree and hides generated files")
+    @Test("Project scanner shows project resources while marking only TeX files openable")
     func scansProjectFiles() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("PrismPlusProject-\(UUID().uuidString)", isDirectory: true)
@@ -18,6 +18,10 @@ struct ProjectScannerTests {
             at: root.appendingPathComponent("build"),
             withIntermediateDirectories: true
         )
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("empty"),
+            withIntermediateDirectories: true
+        )
         try "main".write(
             to: root.appendingPathComponent("main.tex"),
             atomically: true,
@@ -28,6 +32,12 @@ struct ProjectScannerTests {
             atomically: true,
             encoding: .utf8
         )
+        try "notes".write(
+            to: root.appendingPathComponent("notes.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: root.appendingPathComponent("figure.png"))
         try "generated".write(
             to: root.appendingPathComponent("build/main.log"),
             atomically: true,
@@ -41,8 +51,11 @@ struct ProjectScannerTests {
 
         let nodes = try ProjectScanner.scan(rootURL: root)
 
-        #expect(nodes.map(\.name) == ["chapters", "main.tex"])
+        #expect(nodes.map(\.name) == ["chapters", "empty", "figure.png", "main.tex", "notes.md"])
         #expect(nodes[0].children?.map(\.name) == ["one.tex"])
         #expect(nodes.flatMap(\.flattened).allSatisfy { !$0.url.path.contains("/build/") })
+        #expect(nodes.first(where: { $0.name == "main.tex" })?.isOpenable == true)
+        #expect(nodes.first(where: { $0.name == "figure.png" })?.isOpenable == false)
+        #expect(nodes.first(where: { $0.name == "notes.md" })?.isOpenable == false)
     }
 }

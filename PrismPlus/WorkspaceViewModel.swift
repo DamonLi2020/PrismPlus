@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class WorkspaceViewModel: ObservableObject {
@@ -30,21 +31,24 @@ final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var projectRootURL: URL?
     @Published private(set) var projectNodes: [ProjectNode] = []
     @Published private(set) var isDirty = false
+    @Published private(set) var hasOpenDocument = false
 
     private let compiler: any LaTeXCompiling
     private var compilationTask: Task<Void, Never>?
 
     init(compiler: any LaTeXCompiling = TectonicCompiler()) {
         self.compiler = compiler
-        source = Self.starterDocument
+        source = ""
     }
 
     var documentTitle: String {
+        guard hasOpenDocument else { return "Prism Plus" }
         let name = fileURL?.lastPathComponent ?? "Untitled.tex"
         return isDirty ? "\(name) — Edited" : name
     }
 
     func updateSource(_ updatedSource: String, deferAutomaticCompilation: Bool = false) {
+        guard hasOpenDocument else { return }
         guard updatedSource != source else { return }
         source = updatedSource
         isDirty = true
@@ -58,6 +62,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func compileImmediately() {
+        guard hasOpenDocument else { return }
         scheduleCompilation(delay: .zero, requiresReadySource: false)
     }
 
@@ -65,6 +70,7 @@ final class WorkspaceViewModel: ObservableObject {
         delay: Duration = .milliseconds(900),
         requiresReadySource: Bool = true
     ) {
+        guard hasOpenDocument else { return }
         compilationTask?.cancel()
         if requiresReadySource && !LaTeXSourceReadiness.isReady(source) {
             buildState = .waiting
@@ -106,6 +112,7 @@ final class WorkspaceViewModel: ObservableObject {
         diagnostics = []
         log = ""
         isDirty = false
+        hasOpenDocument = true
         compileImmediately()
     }
 
@@ -114,7 +121,8 @@ final class WorkspaceViewModel: ObservableObject {
 
         let panel = NSOpenPanel()
         panel.title = "Open LaTeX Document"
-        panel.allowedContentTypes = [.plainText]
+        panel.allowedContentTypes = [Self.texContentType]
+        panel.allowsOtherFileTypes = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
 
@@ -139,20 +147,14 @@ final class WorkspaceViewModel: ObservableObject {
         do {
             projectRootURL = selectedURL
             try refreshProject()
-            if let main = projectNodes.flatMap(\.flattened).first(where: { $0.name == "main.tex" })
-                ?? projectNodes.flatMap(\.flattened).first(where: {
-                    $0.url.pathExtension.lowercased() == "tex"
-                })
-            {
-                try loadDocument(at: main.url)
-            }
+            closeDocumentForWelcomePage()
         } catch {
             presentError(error)
         }
     }
 
     func selectProjectNode(_ node: ProjectNode) {
-        guard !node.isDirectory, node.url.pathExtension.lowercased() == "tex" else { return }
+        guard node.isOpenable else { return }
         guard node.url != fileURL else { return }
         guard confirmDiscardIfNeeded() else { return }
         do {
@@ -166,7 +168,8 @@ final class WorkspaceViewModel: ObservableObject {
         let panel = NSSavePanel()
         panel.title = "Create LaTeX File"
         panel.nameFieldStringValue = "chapter.tex"
-        panel.allowedContentTypes = [.plainText]
+        panel.allowedContentTypes = [Self.texContentType]
+        panel.allowsOtherFileTypes = false
         panel.directoryURL = projectRootURL
         guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
 
@@ -198,6 +201,7 @@ final class WorkspaceViewModel: ObservableObject {
 
     @discardableResult
     func saveDocument() -> Bool {
+        guard hasOpenDocument else { return false }
         let destinationURL: URL
         if let fileURL {
             destinationURL = fileURL
@@ -205,7 +209,8 @@ final class WorkspaceViewModel: ObservableObject {
             let panel = NSSavePanel()
             panel.title = "Save LaTeX Document"
             panel.nameFieldStringValue = "main.tex"
-            panel.allowedContentTypes = [.plainText]
+            panel.allowedContentTypes = [Self.texContentType]
+            panel.allowsOtherFileTypes = false
             guard panel.runModal() == .OK, let selectedURL = panel.url else { return false }
             destinationURL = selectedURL
         }
@@ -235,10 +240,26 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     private func loadDocument(at url: URL) throws {
+        guard url.pathExtension.lowercased() == "tex" else {
+            throw WorkspaceError.unsupportedFileType
+        }
         source = try String(contentsOf: url, encoding: .utf8)
         fileURL = url
         isDirty = false
+        hasOpenDocument = true
         compileImmediately()
+    }
+
+    private func closeDocumentForWelcomePage() {
+        compilationTask?.cancel()
+        fileURL = nil
+        source = ""
+        pdfData = nil
+        diagnostics = []
+        log = ""
+        buildState = .idle
+        isDirty = false
+        hasOpenDocument = false
     }
 
     private func confirmDiscardIfNeeded() -> Bool {
@@ -281,4 +302,14 @@ final class WorkspaceViewModel: ObservableObject {
         \]
         \end{document}
         """#
+
+    private static let texContentType = UTType(filenameExtension: "tex") ?? .plainText
+}
+
+private enum WorkspaceError: LocalizedError {
+    case unsupportedFileType
+
+    var errorDescription: String? {
+        "Prism Plus can open only .tex documents."
+    }
 }

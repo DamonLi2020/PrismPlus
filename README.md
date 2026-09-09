@@ -5,9 +5,12 @@ compilation, and a live PDF preview.
 
 ## Current milestone
 
-The first vertical slice provides:
+The current vertical slice provides:
 
-- a three-pane project explorer, LaTeX source editor, and PDF workspace;
+- a VS Code-style activity rail and project explorer that shows the full resource tree while
+  opening only `.tex` documents;
+- a welcome page with new-document, open-file, and open-folder actions;
+- a split LaTeX source editor and PDF workspace after a document is opened;
 - an embedded offline Monaco editor—the same editor core used by VS Code;
 - readable syntax highlighting, command suggestions, snippets, delimiter pairing, indentation,
   keyboard completion navigation, and document formatting;

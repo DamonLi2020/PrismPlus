@@ -7,6 +7,7 @@ struct ProjectNode: Identifiable, Equatable, Sendable {
 
     var id: URL { url }
     var name: String { url.lastPathComponent }
+    var isOpenable: Bool { !isDirectory && url.pathExtension.lowercased() == "tex" }
 
     var flattened: [ProjectNode] {
         [self] + (children ?? []).flatMap(\.flattened)
@@ -14,9 +15,6 @@ struct ProjectNode: Identifiable, Equatable, Sendable {
 }
 
 enum ProjectScanner {
-    private static let supportedExtensions: Set<String> = [
-        "bib", "cls", "jpeg", "jpg", "pdf", "png", "sty", "svg", "tex",
-    ]
     private static let ignoredDirectories: Set<String> = [
         ".build", ".git", "build", "DerivedData",
     ]
@@ -35,11 +33,9 @@ enum ProjectScanner {
             if values.isDirectory == true {
                 guard !ignoredDirectories.contains(url.lastPathComponent) else { return nil }
                 let children = try scan(rootURL: url)
-                guard !children.isEmpty else { return nil }
                 return ProjectNode(url: url, isDirectory: true, children: children)
             }
 
-            guard supportedExtensions.contains(url.pathExtension.lowercased()) else { return nil }
             return ProjectNode(url: url, isDirectory: false, children: nil)
         }
 

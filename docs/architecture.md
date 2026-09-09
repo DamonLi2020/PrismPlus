@@ -4,9 +4,12 @@
 
 ```text
 SwiftUI workspace
+  ├─ Welcome and Explorer states
+  │    ├─ full visible project resource tree
+  │    └─ .tex-only editor selection boundary
   ├─ Monaco LaTeX editor in a local-only WKWebView
   │    ├─ language configuration and snippets (TypeScript)
-  │    └─ narrow, string-only Swift/JavaScript document bridge
+  │    └─ narrow Swift/JavaScript source and readiness bridge
   ├─ WorkspaceViewModel (@MainActor)
   │    └─ LaTeXCompiling protocol
   │         └─ TectonicCompiler actor
@@ -27,7 +30,9 @@ formatting. Vite packages both into local application resources. A private read-
 scheme serves only files beneath that resource directory, so the editor needs no server or network.
 
 PDF replacement is performed in place with animation disabled while preserving page, destination,
-and zoom. Automatic builds are debounced and deferred while delimiters are visibly incomplete.
+and zoom. Automatic builds are debounced and deferred while completion syntax or delimiters are
+visibly incomplete. The initial workspace does not create or compile a document until the user
+chooses a welcome-page action or selects a `.tex` resource.
 
 ## Planned extension points
 
