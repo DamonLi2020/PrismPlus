@@ -12,9 +12,9 @@ struct WorkspaceView: View {
                 projectSidebar
                     .frame(minWidth: 190, idealWidth: 230, maxWidth: 300)
                 editorPane
-                    .frame(minWidth: 380, idealWidth: 570)
+                    .frame(minWidth: 480, idealWidth: 680)
                 previewPane
-                    .frame(minWidth: 420, idealWidth: 650)
+                    .frame(minWidth: 360, idealWidth: 520)
             }
         }
         .frame(minWidth: 1_100, minHeight: 640)
@@ -165,13 +165,13 @@ struct WorkspaceView: View {
     private var editorPane: some View {
         VStack(spacing: 0) {
             paneTitle("SOURCE", detail: "LaTeX")
-            MonacoEditorView(
-                text: Binding(
-                    get: { model.source },
-                    set: { model.updateSource($0) }
-                ),
-                formatRequestID: formatRequestID
-            )
+            MonacoEditorView(text: model.source, formatRequestID: formatRequestID) {
+                source, deferAutomaticCompilation in
+                model.updateSource(
+                    source,
+                    deferAutomaticCompilation: deferAutomaticCompilation
+                )
+            }
             HStack {
                 Text("Suggestions, snippets, pairing, formatting, and syntax highlighting enabled")
                 Spacer()

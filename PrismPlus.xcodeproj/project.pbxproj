@@ -27,6 +27,7 @@
 		A49224E66397FA40080BE374 /* WorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C1C5B7FFF1C86633128318 /* WorkspaceViewModel.swift */; };
 		B585FD97917E802784D53134 /* LaTeXSourceReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27687ECF3D504FC44AE90E02 /* LaTeXSourceReadiness.swift */; };
 		BF970159ED9E35AD92DFB5C7 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3CBC420AC182D58ACE844BC /* WorkspaceView.swift */; };
+		CFB645DA6E9023D18D00C171 /* WorkspaceViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057D81654E5D4DDDF2937E3 /* WorkspaceViewModelTests.swift */; };
 		EBBDA650AAAD369DD39DFA25 /* TectonicCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D20CA851785C30A8EA965E /* TectonicCommandBuilderTests.swift */; };
 		F276DFD7C73FFFE8F5B2DC6C /* PDFKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDE88BB1BD7F8C4E97CE959B /* PDFKit.framework */; };
 /* End PBXBuildFile section */
@@ -50,6 +51,7 @@
 		3167E2B07C27D71496AF8475 /* MonacoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonacoEditorView.swift; sourceTree = "<group>"; };
 		3BEEDB88B2DA9DDF68DC1224 /* LaTeXDiagnosticParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaTeXDiagnosticParserTests.swift; sourceTree = "<group>"; };
 		3F762C78BAEF3D047782EA39 /* TectonicCompilerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TectonicCompilerTests.swift; sourceTree = "<group>"; };
+		4057D81654E5D4DDDF2937E3 /* WorkspaceViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewModelTests.swift; sourceTree = "<group>"; };
 		4E8DF54078C8291B96E7D427 /* TectonicCompiler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TectonicCompiler.swift; sourceTree = "<group>"; };
 		5387A034F903008D25148A69 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
 		53BD997D367C2B79DDBCA43B /* CompilationArtifactLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationArtifactLoaderTests.swift; sourceTree = "<group>"; };
@@ -90,6 +92,7 @@
 				11F22EAB01519F2BA6D34C25 /* ProjectScannerTests.swift */,
 				14D20CA851785C30A8EA965E /* TectonicCommandBuilderTests.swift */,
 				3F762C78BAEF3D047782EA39 /* TectonicCompilerTests.swift */,
+				4057D81654E5D4DDDF2937E3 /* WorkspaceViewModelTests.swift */,
 			);
 			path = PrismPlusTests;
 			sourceTree = "<group>";
@@ -264,6 +267,7 @@
 				0A95D0E458A60401424E5C91 /* ProjectScannerTests.swift in Sources */,
 				EBBDA650AAAD369DD39DFA25 /* TectonicCommandBuilderTests.swift in Sources */,
 				2F15177780AEFD51D7CF08A9 /* TectonicCompilerTests.swift in Sources */,
+				CFB645DA6E9023D18D00C171 /* WorkspaceViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

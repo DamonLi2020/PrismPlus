@@ -2,11 +2,12 @@ import SwiftUI
 @preconcurrency import WebKit
 
 struct MonacoEditorView: NSViewRepresentable {
-    @Binding var text: String
+    var text: String
     var formatRequestID: Int
+    var onSourceChange: (String, Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
+        Coordinator(source: text, onSourceChange: onSourceChange)
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -41,7 +42,11 @@ struct MonacoEditorView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        context.coordinator.update(source: text, formatRequestID: formatRequestID)
+        context.coordinator.update(
+            source: text,
+            formatRequestID: formatRequestID,
+            onSourceChange: onSourceChange
+        )
     }
 
     static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
@@ -54,17 +59,19 @@ struct MonacoEditorView: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
-        @Binding private var text: String
         private weak var webView: WKWebView?
         private var schemeHandler: LocalEditorSchemeHandler?
+        private var currentSource: String
+        private var onSourceChange: (String, Bool) -> Void
         private var isReady = false
         private var pendingSource = ""
         private var lastSentSource = ""
         private var pendingFormatRequestID = 0
         private var lastFormatRequestID = 0
 
-        init(text: Binding<String>) {
-            _text = text
+        init(source: String, onSourceChange: @escaping (String, Bool) -> Void) {
+            currentSource = source
+            self.onSourceChange = onSourceChange
         }
 
         func attach(
@@ -79,7 +86,13 @@ struct MonacoEditorView: NSViewRepresentable {
             pendingFormatRequestID = formatRequestID
         }
 
-        func update(source: String, formatRequestID: Int) {
+        func update(
+            source: String,
+            formatRequestID: Int,
+            onSourceChange: @escaping (String, Bool) -> Void
+        ) {
+            currentSource = source
+            self.onSourceChange = onSourceChange
             pendingSource = source
             pendingFormatRequestID = formatRequestID
             synchronizeIfReady()
@@ -91,10 +104,17 @@ struct MonacoEditorView: NSViewRepresentable {
         ) {
             switch message.name {
             case "sourceChanged":
-                guard let source = message.body as? String else { return }
+                guard
+                    let payload = message.body as? [String: Any],
+                    let source = payload["source"] as? String
+                else { return }
+                let deferAutomaticCompilation =
+                    payload["deferAutomaticCompilation"] as? Bool ?? false
                 lastSentSource = source
-                if text != source {
-                    text = source
+                pendingSource = source
+                if currentSource != source {
+                    currentSource = source
+                    onSourceChange(source, deferAutomaticCompilation)
                 }
             case "editorReady":
                 isReady = true

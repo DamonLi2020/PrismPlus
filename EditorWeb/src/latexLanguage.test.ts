@@ -5,7 +5,9 @@ import {
   completionItems,
   completionItemsForContext,
   formatLaTeX,
+  shouldDeferCompilation,
   shouldTriggerSuggestions,
+  sourcePositionAfterChange,
 } from "./latexLanguage";
 
 describe("LaTeX language intelligence", () => {
@@ -17,6 +19,7 @@ describe("LaTeX language intelligence", () => {
     expect(results[0]?.documentation).toContain("Creates a numbered section");
     expect(results[0]?.documentation).toContain("```latex\n\\section{title}\n```");
     expect(results[0]?.documentation).not.toContain("${1:");
+    expect(results[0]?.signature).toBe("\\section{title}");
     expect(results.some((item) => item.label === "\\subsection")).toBe(false);
     expect(completionItems("\\alp")[0]?.label).toBe("\\alpha");
     expect(completionItems("\\begin{").length).toBeGreaterThan(5);
@@ -63,6 +66,26 @@ describe("LaTeX language intelligence", () => {
     expect(shouldTriggerSuggestions("\\begin{", "{")).toBe(true);
     expect(shouldTriggerSuggestions("\\usepackage{", "{")).toBe(true);
     expect(shouldTriggerSuggestions("plain {", "{")).toBe(false);
+  });
+
+  it("defers compilation while the user is choosing an incomplete completion", () => {
+    expect(shouldDeferCompilation("\\s", "")).toBe(true);
+    expect(shouldDeferCompilation("\\section", "")).toBe(true);
+    expect(shouldDeferCompilation("\\begin{ali", "}")).toBe(true);
+    expect(shouldDeferCompilation("\\alpha", "")).toBe(false);
+    expect(shouldDeferCompilation("ordinary text", "")).toBe(false);
+    expect(shouldDeferCompilation("\\unknowncommand", "")).toBe(false);
+  });
+
+  it("derives the post-edit caret before Monaco publishes its cursor event", () => {
+    expect(sourcePositionAfterChange(4, 3, "sec")).toEqual({
+      lineNumber: 4,
+      column: 6,
+    });
+    expect(sourcePositionAfterChange(4, 3, "section{title}\nnext")).toEqual({
+      lineNumber: 5,
+      column: 5,
+    });
   });
 
   it("formats nested environments and removes trailing whitespace", () => {

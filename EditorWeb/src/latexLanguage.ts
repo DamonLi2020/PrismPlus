@@ -3,6 +3,7 @@ export interface CompletionItem {
   detail: string;
   documentation: string;
   insertText: string;
+  signature: string;
 }
 
 export type CompletionContextKind =
@@ -254,6 +255,39 @@ export function shouldTriggerSuggestions(lineBeforeCursor: string, typedText: st
   return context !== undefined && context.kind !== "command";
 }
 
+export function shouldDeferCompilation(
+  lineBeforeCursor: string,
+  lineAfterCursor: string,
+): boolean {
+  const context = completionContext(lineBeforeCursor, lineAfterCursor);
+  if (!context) return false;
+  const items = completionItemsForContext(context);
+  if (items.length === 0) return false;
+  if (context.kind !== "command") return true;
+
+  const exactMatch = items.find((item) => item.label === context.prefix);
+  if (!exactMatch) return true;
+  return exactMatch.insertText !== exactMatch.label;
+}
+
+export function sourcePositionAfterChange(
+  startLineNumber: number,
+  startColumn: number,
+  insertedText: string,
+): { lineNumber: number; column: number } {
+  const insertedLines = insertedText.split(/\r?\n/);
+  if (insertedLines.length === 1) {
+    return {
+      lineNumber: startLineNumber,
+      column: startColumn + insertedLines[0].length,
+    };
+  }
+  return {
+    lineNumber: startLineNumber + insertedLines.length - 1,
+    column: (insertedLines.at(-1)?.length ?? 0) + 1,
+  };
+}
+
 export function formatLaTeX(source: string): string {
   const lines = source.split(/\r?\n/);
   const output: string[] = [];
@@ -291,11 +325,13 @@ function snippet(
   insertText: string,
   description = `Inserts the ${detail.toLowerCase()} syntax.`,
 ): CompletionItem {
+  const example = snippetExample(insertText);
   return {
     label,
     detail,
-    documentation: documentation(detail, description, snippetExample(insertText)),
+    documentation: documentation(detail, description, example),
     insertText,
+    signature: example.split("\n")[0] ?? label,
   };
 }
 
@@ -311,6 +347,7 @@ function environment(name: string, detail: string, body = "$0"): CompletionItem 
       example,
     ),
     insertText: insertion,
+    signature: example.split("\n")[0] ?? name,
   };
 }
 
@@ -326,6 +363,7 @@ function value(
     detail,
     documentation: documentation(detail, description, example),
     insertText,
+    signature: example,
   };
 }
 

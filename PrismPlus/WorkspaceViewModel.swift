@@ -44,11 +44,17 @@ final class WorkspaceViewModel: ObservableObject {
         return isDirty ? "\(name) — Edited" : name
     }
 
-    func updateSource(_ updatedSource: String) {
+    func updateSource(_ updatedSource: String, deferAutomaticCompilation: Bool = false) {
         guard updatedSource != source else { return }
         source = updatedSource
         isDirty = true
-        scheduleCompilation()
+        if deferAutomaticCompilation {
+            compilationTask?.cancel()
+            diagnostics = []
+            buildState = .waiting
+        } else {
+            scheduleCompilation()
+        }
     }
 
     func compileImmediately() {

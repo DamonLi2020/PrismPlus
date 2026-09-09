@@ -7,7 +7,9 @@ import {
   completionContext,
   completionItemsForContext,
   formatLaTeX,
+  shouldDeferCompilation,
   shouldTriggerSuggestions,
+  sourcePositionAfterChange,
 } from "./latexLanguage";
 import "./style.css";
 
@@ -112,6 +114,12 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
   tabSize: 2,
   insertSpaces: true,
   acceptSuggestionOnEnter: "on",
+  suggest: {
+    preview: true,
+    showIcons: true,
+    showInlineDetails: true,
+    showStatusBar: true,
+  },
 });
 
 monaco.languages.registerCompletionItemProvider("latex", {
@@ -131,7 +139,7 @@ monaco.languages.registerCompletionItemProvider("latex", {
     return {
       suggestions: completionItemsForContext(context).map((item) => ({
         label: item.label,
-        detail: item.detail,
+        detail: `${item.detail} — ${item.signature}`,
         documentation: { value: item.documentation, isTrusted: false },
         insertText: item.insertText,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -142,14 +150,11 @@ monaco.languages.registerCompletionItemProvider("latex", {
   },
 });
 
-let suggestionDetailsExpanded = false;
-
 function showSuggestions(): void {
   void editor.getAction("editor.action.triggerSuggest")?.run().then(() => {
-    if (suggestionDetailsExpanded) return;
     window.setTimeout(() => {
+      if (document.querySelector(".suggest-details-container")) return;
       editor.trigger("prism-plus", "toggleSuggestionDetails", null);
-      suggestionDetailsExpanded = true;
     }, 100);
   });
 }
@@ -176,10 +181,27 @@ monaco.languages.registerDocumentFormattingEditProvider("latex", {
 
 let applyingNativeUpdate = false;
 const bridgeWindow = window as BridgeWindow;
-editor.onDidChangeModelContent(() => {
-  if (!applyingNativeUpdate) {
-    bridgeWindow.webkit?.messageHandlers?.sourceChanged?.postMessage(editor.getValue());
+editor.onDidChangeModelContent((event) => {
+  if (applyingNativeUpdate) return;
+  const model = editor.getModel();
+  const lastChange = event.changes.at(-1);
+  let deferAutomaticCompilation = false;
+  if (model && lastChange) {
+    const position = sourcePositionAfterChange(
+      lastChange.range.startLineNumber,
+      lastChange.range.startColumn,
+      lastChange.text,
+    );
+    const line = model.getLineContent(position.lineNumber);
+    deferAutomaticCompilation = shouldDeferCompilation(
+      line.slice(0, position.column - 1),
+      line.slice(position.column - 1),
+    );
   }
+  bridgeWindow.webkit?.messageHandlers?.sourceChanged?.postMessage({
+    source: editor.getValue(),
+    deferAutomaticCompilation,
+  });
 });
 
 bridgeWindow.prismPlus = {
