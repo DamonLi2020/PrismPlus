@@ -26,3 +26,6 @@ EditorWeb/dist/
 .env
 .env.*
 !.env.example
+
+# Local AI development instructions
+AGENTS.md
