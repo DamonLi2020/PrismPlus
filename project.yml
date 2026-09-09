@@ -1,0 +1,61 @@
+name: PrismPlus
+
+options:
+  bundleIdPrefix: com.damonli
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CLANG_ENABLE_MODULES: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  PrismPlus:
+    type: application
+    platform: macOS
+    sources:
+      - path: PrismPlus
+        excludes:
+          - EditorResources
+      - path: PrismPlus/EditorResources
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.damonli.PrismPlus
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Prism Plus
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        ENABLE_APP_SANDBOX: NO
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+    dependencies:
+      - sdk: PDFKit.framework
+      - sdk: WebKit.framework
+
+  PrismPlusTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: PrismPlusTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.damonli.PrismPlusTests
+        GENERATE_INFOPLIST_FILE: YES
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+    dependencies:
+      - target: PrismPlus
+
+schemes:
+  PrismPlus:
+    build:
+      targets:
+        PrismPlus: all
+    test:
+      gatherCoverageData: true
+      targets:
+        - PrismPlusTests

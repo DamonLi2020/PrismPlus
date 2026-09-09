@@ -1,0 +1,51 @@
+import Foundation
+
+struct ProjectNode: Identifiable, Equatable, Sendable {
+    let url: URL
+    let isDirectory: Bool
+    let children: [ProjectNode]?
+
+    var id: URL { url }
+    var name: String { url.lastPathComponent }
+
+    var flattened: [ProjectNode] {
+        [self] + (children ?? []).flatMap(\.flattened)
+    }
+}
+
+enum ProjectScanner {
+    private static let supportedExtensions: Set<String> = [
+        "bib", "cls", "jpeg", "jpg", "pdf", "png", "sty", "svg", "tex",
+    ]
+    private static let ignoredDirectories: Set<String> = [
+        ".build", ".git", "build", "DerivedData",
+    ]
+
+    static func scan(rootURL: URL) throws -> [ProjectNode] {
+        let urls = try FileManager.default.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey],
+            options: [.skipsHiddenFiles]
+        )
+
+        let nodes = try urls.compactMap { url -> ProjectNode? in
+            let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isHiddenKey])
+            guard values.isHidden != true else { return nil }
+
+            if values.isDirectory == true {
+                guard !ignoredDirectories.contains(url.lastPathComponent) else { return nil }
+                let children = try scan(rootURL: url)
+                guard !children.isEmpty else { return nil }
+                return ProjectNode(url: url, isDirectory: true, children: children)
+            }
+
+            guard supportedExtensions.contains(url.pathExtension.lowercased()) else { return nil }
+            return ProjectNode(url: url, isDirectory: false, children: nil)
+        }
+
+        return nodes.sorted { lhs, rhs in
+            if lhs.isDirectory != rhs.isDirectory { return lhs.isDirectory }
+            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
+    }
+}

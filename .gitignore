@@ -1,0 +1,28 @@
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+
+# XcodeGen
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# macOS
+.DS_Store
+
+# Local editor state and generated documents
+.prism-plus/
+*.synctex.gz
+*.aux
+*.log
+*.out
+*.toc
+
+# Web editor dependencies and scratch builds
+EditorWeb/node_modules/
+EditorWeb/dist/
+
+# Secrets
+.env
+.env.*
+!.env.example

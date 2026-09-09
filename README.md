@@ -1,0 +1,49 @@
+# Prism Plus
+
+Prism Plus is a local-first macOS LaTeX editor with a focused source editor, continuous safe
+compilation, and a live PDF preview.
+
+## Current milestone
+
+The first vertical slice provides:
+
+- a three-pane project explorer, LaTeX source editor, and PDF workspace;
+- an embedded offline Monaco editor—the same editor core used by VS Code;
+- readable syntax highlighting, command suggestions, snippets, delimiter pairing, indentation,
+  keyboard completion navigation, and document formatting;
+- debounced local compilation through Tectonic;
+- a stable PDFKit preview that preserves the current page, zoom, and scroll position;
+- mandatory untrusted compilation with no shell invocation;
+- compiler status, logs, and line-addressable diagnostics;
+- a reproducible Xcode project and test-first workflow.
+
+## Requirements
+
+- macOS 14 or newer
+- Xcode 26 or newer
+- Tectonic available at `/opt/homebrew/bin/tectonic`
+- XcodeGen when regenerating the project
+- Node.js 24 or newer only when changing or rebuilding the embedded editor
+
+## Build
+
+```sh
+cd EditorWeb
+npm install
+npm test
+npm run build
+cd ..
+xcodegen generate
+xcodebuild test -project PrismPlus.xcodeproj -scheme PrismPlus -destination 'platform=macOS'
+xcodebuild build -project PrismPlus.xcodeproj -scheme PrismPlus -destination 'platform=macOS'
+```
+
+The generated editor assets are included in the app bundle. Prism Plus performs no network request
+to load the editor at runtime.
+
+## Security
+
+Prism Plus executes Tectonic directly with `--untrusted` and
+`TECTONIC_UNTRUSTED_MODE=1`. It never builds a shell command from document text.
+
+Third-party notices are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
