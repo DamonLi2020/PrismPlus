@@ -21,6 +21,7 @@ struct ProjectExplorerView: View {
                 noFolderView
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color(nsColor: .controlBackgroundColor))
         .onChange(of: model.projectRootURL) {
             isRootExpanded = true

@@ -22,8 +22,9 @@ struct WorkspaceView: View {
                     mainWorkspace
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(minWidth: 1_100, minHeight: 640)
+        .frame(minWidth: 1_100, maxWidth: .infinity, minHeight: 640, maxHeight: .infinity)
         .onReceive(NotificationCenter.default.publisher(for: .compileLaTeXDocument)) { _ in
             model.compileImmediately()
         }
@@ -82,22 +83,25 @@ struct WorkspaceView: View {
         .background(Color(nsColor: .controlBackgroundColor))
     }
 
-    @ViewBuilder
     private var mainWorkspace: some View {
-        if model.hasOpenDocument {
-            HSplitView {
-                editorPane
-                    .frame(minWidth: 480, idealWidth: 680)
-                previewPane
-                    .frame(minWidth: 360, idealWidth: 520)
+        Group {
+            if model.hasOpenDocument {
+                HSplitView {
+                    editorPane
+                        .frame(minWidth: 480, idealWidth: 680, maxHeight: .infinity)
+                    previewPane
+                        .frame(minWidth: 360, idealWidth: 520, maxHeight: .infinity)
+                }
+            } else {
+                welcomePage
             }
-        } else {
-            welcomePage
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var projectSidebar: some View {
         ProjectExplorerView(model: model)
+            .frame(maxHeight: .infinity)
     }
 
     private var welcomePage: some View {
@@ -223,6 +227,7 @@ struct WorkspaceView: View {
             diagnosticsPanel
         }
         .background(Color(red: 0.055, green: 0.063, blue: 0.082))
+        .frame(maxHeight: .infinity)
     }
 
     @ViewBuilder
@@ -270,6 +275,7 @@ struct WorkspaceView: View {
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .frame(maxHeight: .infinity)
     }
 
     private func paneTitle(_ title: String, detail: String) -> some View {
