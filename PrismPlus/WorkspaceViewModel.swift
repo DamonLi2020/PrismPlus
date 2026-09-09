@@ -30,6 +30,7 @@ final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var fileURL: URL?
     @Published private(set) var projectRootURL: URL?
     @Published private(set) var projectNodes: [ProjectNode] = []
+    @Published private(set) var selectedExplorerDirectoryURL: URL?
     @Published private(set) var isDirty = false
     @Published private(set) var hasOpenDocument = false
 
@@ -129,6 +130,7 @@ final class WorkspaceViewModel: ObservableObject {
         do {
             try loadDocument(at: selectedURL)
             projectRootURL = selectedURL.deletingLastPathComponent()
+            selectedExplorerDirectoryURL = projectRootURL
             try refreshProject()
         } catch {
             presentError(error)
@@ -145,12 +147,28 @@ final class WorkspaceViewModel: ObservableObject {
         guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
 
         do {
-            projectRootURL = selectedURL
-            try refreshProject()
-            closeDocumentForWelcomePage()
+            try loadProject(at: selectedURL)
         } catch {
             presentError(error)
         }
+    }
+
+    func loadProject(at url: URL) throws {
+        projectRootURL = url
+        selectedExplorerDirectoryURL = url
+        try refreshProject()
+        closeDocumentForWelcomePage()
+    }
+
+    func selectExplorerRoot() {
+        selectedExplorerDirectoryURL = projectRootURL
+    }
+
+    func selectExplorerDirectory(_ node: ProjectNode) {
+        guard node.isDirectory, let projectRootURL else { return }
+        let projectURLs = projectNodes.flatMap(\.flattened).map(\.url)
+        guard projectURLs.contains(node.url), node.url != projectRootURL else { return }
+        selectedExplorerDirectoryURL = node.url
     }
 
     func selectProjectNode(_ node: ProjectNode) {
@@ -164,23 +182,96 @@ final class WorkspaceViewModel: ObservableObject {
         }
     }
 
-    func createProjectFile() {
-        let panel = NSSavePanel()
-        panel.title = "Create LaTeX File"
-        panel.nameFieldStringValue = "chapter.tex"
-        panel.allowedContentTypes = [Self.texContentType]
-        panel.allowsOtherFileTypes = false
-        panel.directoryURL = projectRootURL
-        guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
+    @discardableResult
+    func createProjectFile(named name: String, in directoryURL: URL) -> Bool {
+        guard confirmDiscardIfNeeded(), let projectRootURL else { return false }
+        do {
+            let selectedURL = try ProjectResourceManager.create(
+                named: name,
+                kind: .latexFile,
+                in: directoryURL,
+                projectRoot: projectRootURL
+            )
+            try refreshProject()
+            try loadDocument(at: selectedURL, compileAfterLoading: false)
+            return true
+        } catch {
+            presentError(error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func createProjectFolder(named name: String, in directoryURL: URL) -> Bool {
+        guard let projectRootURL else { return false }
+        do {
+            let createdURL = try ProjectResourceManager.create(
+                named: name,
+                kind: .folder,
+                in: directoryURL,
+                projectRoot: projectRootURL
+            )
+            selectedExplorerDirectoryURL = createdURL
+            try refreshProject()
+            return true
+        } catch {
+            presentError(error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func renameProjectNode(_ node: ProjectNode, to name: String) -> Bool {
+        guard let projectRootURL else { return false }
+        if resourceContainsOpenDocument(node), !confirmDiscardIfNeeded() { return false }
+        do {
+            let renamedURL = try ProjectResourceManager.rename(
+                node.url,
+                to: name,
+                as: ProjectResourceManager.kind(for: node),
+                projectRoot: projectRootURL
+            )
+            if fileURL == node.url {
+                fileURL = renamedURL
+            }
+            if selectedExplorerDirectoryURL == node.url {
+                selectedExplorerDirectoryURL = renamedURL
+            }
+            try refreshProject()
+            return true
+        } catch {
+            presentError(error)
+            return false
+        }
+    }
+
+    func moveProjectNodeToTrash(_ node: ProjectNode) {
+        guard let projectRootURL else { return }
+        if resourceContainsOpenDocument(node), !confirmDiscardIfNeeded() { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Move “\(node.name)” to the Trash?"
+        alert.informativeText = "You can restore it from the Trash later."
+        alert.addButton(withTitle: "Move to Trash")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
 
         do {
-            let initialSource = "% \(selectedURL.deletingPathExtension().lastPathComponent)\n"
-            try initialSource.write(to: selectedURL, atomically: true, encoding: .utf8)
+            try ProjectResourceManager.moveToTrash(node.url, projectRoot: projectRootURL)
+            if resourceContainsOpenDocument(node) {
+                closeDocumentForWelcomePage()
+            }
+            if selectedExplorerDirectoryURL == node.url {
+                selectedExplorerDirectoryURL = node.url.deletingLastPathComponent()
+            }
             try refreshProject()
-            try loadDocument(at: selectedURL)
         } catch {
             presentError(error)
         }
+    }
+
+    func revealInFinder(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     func refreshProject() throws {
@@ -221,6 +312,7 @@ final class WorkspaceViewModel: ObservableObject {
             isDirty = false
             if projectRootURL == nil {
                 projectRootURL = destinationURL.deletingLastPathComponent()
+                selectedExplorerDirectoryURL = projectRootURL
             }
             try refreshProject()
             return true
@@ -239,7 +331,7 @@ final class WorkspaceViewModel: ObservableObject {
         buildState = result.succeeded ? .succeeded : .failed
     }
 
-    private func loadDocument(at url: URL) throws {
+    private func loadDocument(at url: URL, compileAfterLoading: Bool = true) throws {
         guard url.pathExtension.lowercased() == "tex" else {
             throw WorkspaceError.unsupportedFileType
         }
@@ -247,7 +339,14 @@ final class WorkspaceViewModel: ObservableObject {
         fileURL = url
         isDirty = false
         hasOpenDocument = true
-        compileImmediately()
+        if compileAfterLoading {
+            compileImmediately()
+        } else {
+            pdfData = nil
+            diagnostics = []
+            log = ""
+            buildState = .idle
+        }
     }
 
     private func closeDocumentForWelcomePage() {
@@ -260,6 +359,13 @@ final class WorkspaceViewModel: ObservableObject {
         buildState = .idle
         isDirty = false
         hasOpenDocument = false
+    }
+
+    private func resourceContainsOpenDocument(_ node: ProjectNode) -> Bool {
+        guard let fileURL else { return false }
+        if !node.isDirectory { return fileURL == node.url }
+        let directoryPath = node.url.standardizedFileURL.path
+        return fileURL.standardizedFileURL.path.hasPrefix("\(directoryPath)/")
     }
 
     private func confirmDiscardIfNeeded() -> Bool {

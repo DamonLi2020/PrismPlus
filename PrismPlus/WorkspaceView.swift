@@ -4,7 +4,6 @@ struct WorkspaceView: View {
     @StateObject private var model = WorkspaceViewModel()
     @State private var formatRequestID = 0
     @State private var isExplorerVisible = true
-    @State private var isProjectTreeExpanded = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -98,170 +97,7 @@ struct WorkspaceView: View {
     }
 
     private var projectSidebar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Text("EXPLORER")
-                    .font(.caption.weight(.semibold))
-                Spacer()
-                Menu {
-                    Button("New LaTeX File…", systemImage: "doc.badge.plus") {
-                        model.createProjectFile()
-                    }
-                    .disabled(model.projectRootURL == nil)
-                    Button("Open LaTeX File…", systemImage: "doc") {
-                        model.openDocument()
-                    }
-                    Button("Open Folder…", systemImage: "folder") {
-                        model.openProject()
-                    }
-                    Divider()
-                    Button("Refresh", systemImage: "arrow.clockwise") {
-                        model.refreshProjectFromUserAction()
-                    }
-                    .disabled(model.projectRootURL == nil)
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .frame(width: 24, height: 24)
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .help("Explorer Actions")
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 10)
-            .frame(height: 40)
-
-            Divider()
-
-            if let projectRootURL = model.projectRootURL {
-                HStack(spacing: 6) {
-                    Button {
-                        isProjectTreeExpanded.toggle()
-                    } label: {
-                        Image(
-                            systemName: isProjectTreeExpanded
-                                ? "chevron.down" : "chevron.right"
-                        )
-                        .font(.caption2.weight(.bold))
-                    }
-                    .buttonStyle(.plain)
-                    Button {
-                        isProjectTreeExpanded.toggle()
-                    } label: {
-                        Text(projectRootURL.lastPathComponent.uppercased())
-                            .font(.caption.weight(.bold))
-                            .lineLimit(1)
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                    Button {
-                        model.createProjectFile()
-                    } label: {
-                        Image(systemName: "doc.badge.plus")
-                    }
-                    .help("New LaTeX File")
-                    Button {
-                        model.refreshProjectFromUserAction()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .help("Refresh Files")
-                }
-                .padding(.horizontal, 10)
-                .frame(height: 34)
-
-                if isProjectTreeExpanded {
-                    if model.projectNodes.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("This folder is empty.")
-                            Button("New LaTeX File…") {
-                                model.createProjectFile()
-                            }
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        resourceTree
-                    }
-                }
-                Spacer(minLength: 0)
-            } else {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("NO FOLDER OPENED")
-                        .font(.caption.weight(.bold))
-                    Text("You have not yet opened a folder.")
-                        .font(.callout)
-                    Button("Open Folder") {
-                        model.openProject()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    Text(
-                        "Only .tex documents can be opened. Other project resources remain visible in light gray for context."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    Spacer()
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .background(Color(nsColor: .controlBackgroundColor))
-    }
-
-    private var resourceTree: some View {
-        ScrollView {
-            OutlineGroup(model.projectNodes, children: \.children) { node in
-                resourceRow(for: node)
-            }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
-        }
-    }
-
-    @ViewBuilder
-    private func resourceRow(for node: ProjectNode) -> some View {
-        if node.isDirectory {
-            resourceLabel(for: node)
-        } else if node.isOpenable {
-            Button {
-                model.selectProjectNode(node)
-            } label: {
-                resourceLabel(for: node)
-            }
-            .buttonStyle(.plain)
-        } else {
-            resourceLabel(for: node)
-                .foregroundStyle(Color.secondary.opacity(0.55))
-                .allowsHitTesting(false)
-                .help("Prism Plus opens only .tex documents")
-        }
-    }
-
-    private func resourceLabel(for node: ProjectNode) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: fileIcon(for: node))
-                .foregroundStyle(
-                    node.isDirectory
-                        ? Color.accentColor
-                        : node.isOpenable ? Color.secondary : Color.secondary.opacity(0.55)
-                )
-            Text(node.name)
-                .lineLimit(1)
-            Spacer(minLength: 0)
-        }
-        .contentShape(Rectangle())
-        .padding(.horizontal, 5)
-        .padding(.vertical, 3)
-        .background(
-            node.url == model.fileURL
-                ? Color.accentColor.opacity(0.24) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 4)
-        )
+        ProjectExplorerView(model: model)
     }
 
     private var welcomePage: some View {
@@ -461,14 +297,4 @@ struct WorkspaceView: View {
         }
     }
 
-    private func fileIcon(for node: ProjectNode) -> String {
-        if node.isDirectory { return "folder.fill" }
-        switch node.url.pathExtension.lowercased() {
-        case "tex": return "doc.text"
-        case "bib": return "books.vertical"
-        case "png", "jpg", "jpeg", "svg": return "photo"
-        case "pdf": return "doc.richtext"
-        default: return "doc"
-        }
-    }
 }

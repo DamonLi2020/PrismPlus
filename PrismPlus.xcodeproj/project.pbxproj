@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		08570E56B23E8897866332B4 /* ProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5387A034F903008D25148A69 /* ProcessRunner.swift */; };
 		0A95D0E458A60401424E5C91 /* ProjectScannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F22EAB01519F2BA6D34C25 /* ProjectScannerTests.swift */; };
+		0FCD024EFC7FF9E2DDF431EC /* ProjectExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD1DA732918B00609640F1E /* ProjectExplorerView.swift */; };
 		1149A28813C129F9C0EBD8EE /* CompilationArtifactLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BD997D367C2B79DDBCA43B /* CompilationArtifactLoaderTests.swift */; };
 		13057B1870E4D798E230B497 /* CompilationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89134B9D7F63368A21F357C2 /* CompilationResult.swift */; };
 		144DD5A716A8B911B5FB0F56 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 846C25698E89B9D3C34AFE29 /* WebKit.framework */; };
@@ -17,8 +18,10 @@
 		1BAC3986D550A6694984EB9E /* ProjectScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0A7A21F9D12F98B22B8FB9D /* ProjectScanner.swift */; };
 		22DA548458DB788294367E88 /* EditorResources in Resources */ = {isa = PBXBuildFile; fileRef = AEBEB87DF65F5B054C95DA65 /* EditorResources */; };
 		2F15177780AEFD51D7CF08A9 /* TectonicCompilerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F762C78BAEF3D047782EA39 /* TectonicCompilerTests.swift */; };
+		64512BD3A6A39040EBF7F72E /* ExplorerEditPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9609EE19494CCF37B5096BF /* ExplorerEditPolicyTests.swift */; };
 		70279808A84056875506D3E2 /* CompilationDiagnostic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FBB830572CA65092E0F6BFF /* CompilationDiagnostic.swift */; };
 		7DDAE3335693D4BBC28986F6 /* LaTeXDiagnosticParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEEDB88B2DA9DDF68DC1224 /* LaTeXDiagnosticParserTests.swift */; };
+		8439B3075A89765B94666B96 /* ProjectResourceManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF547C3EDD6A0103C5669A3 /* ProjectResourceManagerTests.swift */; };
 		886986DEC48D247095475A24 /* PrismPlusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E031E647AD20C97B20A374 /* PrismPlusApp.swift */; };
 		8AA60AE75320665A1ADF5F3C /* LaTeXDiagnosticParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62785E299C8753A0E9BB794 /* LaTeXDiagnosticParser.swift */; };
 		911DD5F8049436ACAE4018D7 /* LaTeXSourceReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7CB2AF8D7D1B9B4E9F20C2 /* LaTeXSourceReadinessTests.swift */; };
@@ -30,6 +33,8 @@
 		CFB645DA6E9023D18D00C171 /* WorkspaceViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057D81654E5D4DDDF2937E3 /* WorkspaceViewModelTests.swift */; };
 		EBBDA650AAAD369DD39DFA25 /* TectonicCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D20CA851785C30A8EA965E /* TectonicCommandBuilderTests.swift */; };
 		F276DFD7C73FFFE8F5B2DC6C /* PDFKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDE88BB1BD7F8C4E97CE959B /* PDFKit.framework */; };
+		F8B1FF6471150145ABC97CB9 /* ProjectResourceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107C12B3CC7B6B313023450E /* ProjectResourceManager.swift */; };
+		FAA39D54A189FA27074A770E /* ExplorerEditPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B789C3C329B9B98B03DF9E /* ExplorerEditPolicy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +49,7 @@
 
 /* Begin PBXFileReference section */
 		027981C3B6400A8B3F0431FF /* PrismPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrismPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		107C12B3CC7B6B313023450E /* ProjectResourceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectResourceManager.swift; sourceTree = "<group>"; };
 		11F22EAB01519F2BA6D34C25 /* ProjectScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectScannerTests.swift; sourceTree = "<group>"; };
 		14D20CA851785C30A8EA965E /* TectonicCommandBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TectonicCommandBuilderTests.swift; sourceTree = "<group>"; };
 		27687ECF3D504FC44AE90E02 /* LaTeXSourceReadiness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaTeXSourceReadiness.swift; sourceTree = "<group>"; };
@@ -57,6 +63,8 @@
 		53BD997D367C2B79DDBCA43B /* CompilationArtifactLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationArtifactLoaderTests.swift; sourceTree = "<group>"; };
 		61423680AACBF5EFF036B17D /* ProcessInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessInvocation.swift; sourceTree = "<group>"; };
 		6FBB830572CA65092E0F6BFF /* CompilationDiagnostic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationDiagnostic.swift; sourceTree = "<group>"; };
+		73B789C3C329B9B98B03DF9E /* ExplorerEditPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerEditPolicy.swift; sourceTree = "<group>"; };
+		7EF547C3EDD6A0103C5669A3 /* ProjectResourceManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectResourceManagerTests.swift; sourceTree = "<group>"; };
 		846C25698E89B9D3C34AFE29 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		89134B9D7F63368A21F357C2 /* CompilationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationResult.swift; sourceTree = "<group>"; };
 		9F7CB2AF8D7D1B9B4E9F20C2 /* LaTeXSourceReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaTeXSourceReadinessTests.swift; sourceTree = "<group>"; };
@@ -67,7 +75,9 @@
 		D5C1C5B7FFF1C86633128318 /* WorkspaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewModel.swift; sourceTree = "<group>"; };
 		E0A7A21F9D12F98B22B8FB9D /* ProjectScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectScanner.swift; sourceTree = "<group>"; };
 		E6E031E647AD20C97B20A374 /* PrismPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrismPlusApp.swift; sourceTree = "<group>"; };
+		EDD1DA732918B00609640F1E /* ProjectExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectExplorerView.swift; sourceTree = "<group>"; };
 		F3CBC420AC182D58ACE844BC /* WorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceView.swift; sourceTree = "<group>"; };
+		F9609EE19494CCF37B5096BF /* ExplorerEditPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerEditPolicyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,8 +97,10 @@
 			isa = PBXGroup;
 			children = (
 				53BD997D367C2B79DDBCA43B /* CompilationArtifactLoaderTests.swift */,
+				F9609EE19494CCF37B5096BF /* ExplorerEditPolicyTests.swift */,
 				3BEEDB88B2DA9DDF68DC1224 /* LaTeXDiagnosticParserTests.swift */,
 				9F7CB2AF8D7D1B9B4E9F20C2 /* LaTeXSourceReadinessTests.swift */,
+				7EF547C3EDD6A0103C5669A3 /* ProjectResourceManagerTests.swift */,
 				11F22EAB01519F2BA6D34C25 /* ProjectScannerTests.swift */,
 				14D20CA851785C30A8EA965E /* TectonicCommandBuilderTests.swift */,
 				3F762C78BAEF3D047782EA39 /* TectonicCompilerTests.swift */,
@@ -112,6 +124,7 @@
 				6FBB830572CA65092E0F6BFF /* CompilationDiagnostic.swift */,
 				89134B9D7F63368A21F357C2 /* CompilationResult.swift */,
 				AEBEB87DF65F5B054C95DA65 /* EditorResources */,
+				73B789C3C329B9B98B03DF9E /* ExplorerEditPolicy.swift */,
 				C62785E299C8753A0E9BB794 /* LaTeXDiagnosticParser.swift */,
 				27687ECF3D504FC44AE90E02 /* LaTeXSourceReadiness.swift */,
 				3167E2B07C27D71496AF8475 /* MonacoEditorView.swift */,
@@ -119,6 +132,8 @@
 				E6E031E647AD20C97B20A374 /* PrismPlusApp.swift */,
 				61423680AACBF5EFF036B17D /* ProcessInvocation.swift */,
 				5387A034F903008D25148A69 /* ProcessRunner.swift */,
+				EDD1DA732918B00609640F1E /* ProjectExplorerView.swift */,
+				107C12B3CC7B6B313023450E /* ProjectResourceManager.swift */,
 				E0A7A21F9D12F98B22B8FB9D /* ProjectScanner.swift */,
 				4E8DF54078C8291B96E7D427 /* TectonicCompiler.swift */,
 				F3CBC420AC182D58ACE844BC /* WorkspaceView.swift */,
@@ -243,6 +258,7 @@
 			files = (
 				70279808A84056875506D3E2 /* CompilationDiagnostic.swift in Sources */,
 				13057B1870E4D798E230B497 /* CompilationResult.swift in Sources */,
+				FAA39D54A189FA27074A770E /* ExplorerEditPolicy.swift in Sources */,
 				8AA60AE75320665A1ADF5F3C /* LaTeXDiagnosticParser.swift in Sources */,
 				B585FD97917E802784D53134 /* LaTeXSourceReadiness.swift in Sources */,
 				A1F8B6C1E0D9C40AD3A4C795 /* MonacoEditorView.swift in Sources */,
@@ -250,6 +266,8 @@
 				886986DEC48D247095475A24 /* PrismPlusApp.swift in Sources */,
 				9F4EBD1D2122F97A99D60496 /* ProcessInvocation.swift in Sources */,
 				08570E56B23E8897866332B4 /* ProcessRunner.swift in Sources */,
+				0FCD024EFC7FF9E2DDF431EC /* ProjectExplorerView.swift in Sources */,
+				F8B1FF6471150145ABC97CB9 /* ProjectResourceManager.swift in Sources */,
 				1BAC3986D550A6694984EB9E /* ProjectScanner.swift in Sources */,
 				1931C71C3EEB72E303E68183 /* TectonicCompiler.swift in Sources */,
 				BF970159ED9E35AD92DFB5C7 /* WorkspaceView.swift in Sources */,
@@ -262,8 +280,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				1149A28813C129F9C0EBD8EE /* CompilationArtifactLoaderTests.swift in Sources */,
+				64512BD3A6A39040EBF7F72E /* ExplorerEditPolicyTests.swift in Sources */,
 				7DDAE3335693D4BBC28986F6 /* LaTeXDiagnosticParserTests.swift in Sources */,
 				911DD5F8049436ACAE4018D7 /* LaTeXSourceReadinessTests.swift in Sources */,
+				8439B3075A89765B94666B96 /* ProjectResourceManagerTests.swift in Sources */,
 				0A95D0E458A60401424E5C91 /* ProjectScannerTests.swift in Sources */,
 				EBBDA650AAAD369DD39DFA25 /* TectonicCommandBuilderTests.swift in Sources */,
 				2F15177780AEFD51D7CF08A9 /* TectonicCompilerTests.swift in Sources */,
