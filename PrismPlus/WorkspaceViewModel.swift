@@ -31,6 +31,7 @@ final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var projectRootURL: URL?
     @Published private(set) var projectNodes: [ProjectNode] = []
     @Published private(set) var selectedExplorerDirectoryURL: URL?
+    @Published private(set) var outlineItems: [LaTeXOutlineItem] = []
     @Published private(set) var isDirty = false
     @Published private(set) var hasOpenDocument = false
 
@@ -52,6 +53,7 @@ final class WorkspaceViewModel: ObservableObject {
         guard hasOpenDocument else { return }
         guard updatedSource != source else { return }
         source = updatedSource
+        outlineItems = LaTeXOutlineParser.parse(updatedSource)
         isDirty = true
         if deferAutomaticCompilation {
             compilationTask?.cancel()
@@ -109,6 +111,7 @@ final class WorkspaceViewModel: ObservableObject {
         guard confirmDiscardIfNeeded() else { return }
         fileURL = nil
         source = LaTeXDocumentTemplate.standard
+        outlineItems = LaTeXOutlineParser.parse(source)
         pdfData = nil
         diagnostics = []
         log = ""
@@ -290,6 +293,48 @@ final class WorkspaceViewModel: ObservableObject {
         }
     }
 
+    var canDownloadPDF: Bool {
+        pdfData != nil && buildState == .succeeded
+    }
+
+    var canSavePDFBesideSource: Bool {
+        canDownloadPDF && fileURL != nil
+    }
+
+    func downloadPDF() {
+        guard canDownloadPDF, let pdfData else { return }
+        let panel = NSSavePanel()
+        panel.title = "Download PDF"
+        panel.nameFieldStringValue = PDFExportManager.suggestedFilename(for: fileURL)
+        panel.directoryURL =
+            FileManager.default.urls(
+                for: .downloadsDirectory,
+                in: .userDomainMask
+            ).first
+        panel.allowedContentTypes = [.pdf]
+        panel.allowsOtherFileTypes = false
+        guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
+
+        do {
+            try PDFExportManager.write(pdfData, to: destinationURL)
+        } catch {
+            presentError(error)
+        }
+    }
+
+    func savePDFBesideSource() {
+        guard canSavePDFBesideSource, let pdfData, let fileURL else { return }
+        do {
+            try PDFExportManager.write(
+                pdfData,
+                to: PDFExportManager.destinationBesideSource(for: fileURL)
+            )
+            try refreshProject()
+        } catch {
+            presentError(error)
+        }
+    }
+
     @discardableResult
     func saveDocument() -> Bool {
         guard hasOpenDocument else { return false }
@@ -336,6 +381,7 @@ final class WorkspaceViewModel: ObservableObject {
             throw WorkspaceError.unsupportedFileType
         }
         source = try String(contentsOf: url, encoding: .utf8)
+        outlineItems = LaTeXOutlineParser.parse(source)
         fileURL = url
         isDirty = false
         hasOpenDocument = true
@@ -353,6 +399,7 @@ final class WorkspaceViewModel: ObservableObject {
         compilationTask?.cancel()
         fileURL = nil
         source = ""
+        outlineItems = []
         pdfData = nil
         diagnostics = []
         log = ""

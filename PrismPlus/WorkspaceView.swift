@@ -4,6 +4,8 @@ struct WorkspaceView: View {
     @StateObject private var model = WorkspaceViewModel()
     @State private var formatRequestID = 0
     @State private var isExplorerVisible = true
+    @State private var navigationRequest: EditorNavigationRequest?
+    @State private var nextNavigationRequestID = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -99,9 +101,25 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    @ViewBuilder
     private var projectSidebar: some View {
-        ProjectExplorerView(model: model)
-            .frame(maxHeight: .infinity)
+        if model.hasOpenDocument {
+            VSplitView {
+                ProjectExplorerView(model: model)
+                    .frame(minHeight: 220, idealHeight: 440, maxHeight: .infinity)
+                DocumentOutlineView(items: model.outlineItems) { line in
+                    nextNavigationRequestID += 1
+                    navigationRequest = EditorNavigationRequest(
+                        id: nextNavigationRequestID,
+                        line: line
+                    )
+                }
+                .frame(minHeight: 120, idealHeight: 220, maxHeight: .infinity)
+            }
+        } else {
+            ProjectExplorerView(model: model)
+                .frame(maxHeight: .infinity)
+        }
     }
 
     private var welcomePage: some View {
@@ -206,8 +224,12 @@ struct WorkspaceView: View {
 
     private var editorPane: some View {
         VStack(spacing: 0) {
-            paneTitle("SOURCE", detail: "LaTeX")
-            MonacoEditorView(text: model.source, formatRequestID: formatRequestID) {
+            sourceHeader
+            MonacoEditorView(
+                text: model.source,
+                formatRequestID: formatRequestID,
+                navigationRequest: navigationRequest
+            ) {
                 source, deferAutomaticCompilation in
                 model.updateSource(
                     source,
@@ -228,6 +250,23 @@ struct WorkspaceView: View {
         }
         .background(Color(red: 0.055, green: 0.063, blue: 0.082))
         .frame(maxHeight: .infinity)
+    }
+
+    private var sourceHeader: some View {
+        HStack {
+            paneLabel("SOURCE", detail: "LaTeX")
+            Spacer()
+            Button {
+                formatRequestID += 1
+            } label: {
+                Label("Format", systemImage: "text.alignleft")
+            }
+            .buttonStyle(.plain)
+            .help("Format Document (⌘⇧F)")
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 34)
+        .background(.bar)
     }
 
     @ViewBuilder
@@ -263,7 +302,7 @@ struct WorkspaceView: View {
 
     private var previewPane: some View {
         VStack(spacing: 0) {
-            paneTitle("PREVIEW", detail: "PDF")
+            previewHeader
             if let pdfData = model.pdfData {
                 PDFPreview(data: pdfData)
             } else {
@@ -278,19 +317,41 @@ struct WorkspaceView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private func paneTitle(_ title: String, detail: String) -> some View {
+    private var previewHeader: some View {
         HStack {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+            paneLabel("PREVIEW", detail: "PDF")
             Spacer()
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            Menu {
+                Button("Download PDF…", systemImage: "arrow.down.doc") {
+                    model.downloadPDF()
+                }
+                .disabled(!model.canDownloadPDF)
+                Button("Save PDF Next to Source", systemImage: "doc.badge.plus") {
+                    model.savePDFBesideSource()
+                }
+                .disabled(!model.canSavePDFBesideSource)
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.down")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(!model.canDownloadPDF)
+            .help("Download or save the compiled PDF")
         }
         .padding(.horizontal, 12)
         .frame(height: 34)
         .background(.bar)
+    }
+
+    private func paneLabel(_ title: String, detail: String) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
     }
 
     private var statusColor: Color {

@@ -110,4 +110,45 @@ describe("LaTeX language intelligence", () => {
       ].join("\n"),
     );
   });
+
+  it("reflows prose paragraphs without breaking LaTeX commands", () => {
+    const source = [
+      "\\begin{document}",
+      "\\section{Introduction}",
+      "This is a deliberately long prose paragraph that should wrap into readable source lines.",
+      "\\textbf{This command line remains intact even when it is longer than the selected width.}",
+      "\\end{document}",
+    ].join("\n");
+
+    expect(formatLaTeX(source, 42)).toBe(
+      [
+        "\\begin{document}",
+        "\\section{Introduction}",
+        "This is a deliberately long prose",
+        "paragraph that should wrap into readable",
+        "source lines.",
+        "\\textbf{This command line remains intact even when it is longer than the selected width.}",
+        "\\end{document}",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("preserves comments, equations, and table rows while formatting", () => {
+    const source = [
+      "% A long comment remains exactly as the author wrote it instead of being reflowed.",
+      "\\begin{align}",
+      "value &= first + second + third + fourth + fifth \\\\",
+      "\\end{align}",
+      "\\begin{tabular}{ll}",
+      "A very long cell & Another cell \\\\",
+      "\\end{tabular}",
+    ].join("\n");
+
+    const formatted = formatLaTeX(source, 32);
+
+    expect(formatted).toContain("% A long comment remains exactly as the author wrote it");
+    expect(formatted).toContain("  value &= first + second + third + fourth + fifth \\\\");
+    expect(formatted).toContain("  A very long cell & Another cell \\\\");
+  });
 });

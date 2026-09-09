@@ -1,9 +1,15 @@
 import SwiftUI
 @preconcurrency import WebKit
 
+struct EditorNavigationRequest: Equatable {
+    let id: Int
+    let line: Int
+}
+
 struct MonacoEditorView: NSViewRepresentable {
     var text: String
     var formatRequestID: Int
+    var navigationRequest: EditorNavigationRequest?
     var onSourceChange: (String, Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -34,7 +40,8 @@ struct MonacoEditorView: NSViewRepresentable {
             webView: webView,
             schemeHandler: schemeHandler,
             source: text,
-            formatRequestID: formatRequestID
+            formatRequestID: formatRequestID,
+            navigationRequest: navigationRequest
         )
 
         webView.load(URLRequest(url: LocalEditorSchemeHandler.indexURL))
@@ -45,6 +52,7 @@ struct MonacoEditorView: NSViewRepresentable {
         context.coordinator.update(
             source: text,
             formatRequestID: formatRequestID,
+            navigationRequest: navigationRequest,
             onSourceChange: onSourceChange
         )
     }
@@ -68,6 +76,8 @@ struct MonacoEditorView: NSViewRepresentable {
         private var lastSentSource = ""
         private var pendingFormatRequestID = 0
         private var lastFormatRequestID = 0
+        private var pendingNavigationRequest: EditorNavigationRequest?
+        private var lastNavigationRequestID = 0
 
         init(source: String, onSourceChange: @escaping (String, Bool) -> Void) {
             currentSource = source
@@ -78,23 +88,27 @@ struct MonacoEditorView: NSViewRepresentable {
             webView: WKWebView,
             schemeHandler: LocalEditorSchemeHandler,
             source: String,
-            formatRequestID: Int
+            formatRequestID: Int,
+            navigationRequest: EditorNavigationRequest?
         ) {
             self.webView = webView
             self.schemeHandler = schemeHandler
             pendingSource = source
             pendingFormatRequestID = formatRequestID
+            pendingNavigationRequest = navigationRequest
         }
 
         func update(
             source: String,
             formatRequestID: Int,
+            navigationRequest: EditorNavigationRequest?,
             onSourceChange: @escaping (String, Bool) -> Void
         ) {
             currentSource = source
             self.onSourceChange = onSourceChange
             pendingSource = source
             pendingFormatRequestID = formatRequestID
+            pendingNavigationRequest = navigationRequest
             synchronizeIfReady()
         }
 
@@ -136,6 +150,13 @@ struct MonacoEditorView: NSViewRepresentable {
             if pendingFormatRequestID != lastFormatRequestID {
                 lastFormatRequestID = pendingFormatRequestID
                 webView.evaluateJavaScript("window.prismPlus?.format();")
+            }
+
+            if let request = pendingNavigationRequest,
+                request.id != lastNavigationRequestID
+            {
+                lastNavigationRequestID = request.id
+                webView.evaluateJavaScript("window.prismPlus?.revealLine(\(request.line));")
             }
         }
 

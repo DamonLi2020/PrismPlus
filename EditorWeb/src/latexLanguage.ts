@@ -288,35 +288,107 @@ export function sourcePositionAfterChange(
   };
 }
 
-export function formatLaTeX(source: string): string {
+const protectedEnvironments = new Set([
+  "align",
+  "align*",
+  "aligned",
+  "array",
+  "cases",
+  "equation",
+  "equation*",
+  "gather",
+  "gather*",
+  "lstlisting",
+  "matrix",
+  "multline",
+  "multline*",
+  "pmatrix",
+  "split",
+  "tabular",
+  "tabularx",
+  "tikzcd",
+  "tikzpicture",
+  "verbatim",
+  "Verbatim",
+]);
+
+export function formatLaTeX(source: string, lineWidth = 88): string {
   const lines = source.split(/\r?\n/);
   const output: string[] = [];
   let indentation = 0;
+  const environments: string[] = [];
+  let paragraphWords: string[] = [];
+  let paragraphIndentation = 0;
+
+  const flushParagraph = () => {
+    if (paragraphWords.length === 0) return;
+    output.push(...wrapWords(paragraphWords, paragraphIndentation, lineWidth));
+    paragraphWords = [];
+  };
 
   for (const originalLine of lines) {
     const line = originalLine.trimEnd().trimStart();
     if (line.length === 0) {
+      flushParagraph();
       if (output.length > 0 && output.at(-1) !== "") output.push("");
       continue;
     }
 
     const closing = line.match(/^\\end\{([^}]+)\}/)?.[1];
-    if (closing && closing !== "document") indentation = Math.max(0, indentation - 1);
-
-    output.push(`${"  ".repeat(indentation)}${line}`);
-
     const opening = line.match(/^\\begin\{([^}]+)\}/)?.[1];
+    const isProtected = environments.some((name) => protectedEnvironments.has(name));
+    const isStructural =
+      line.startsWith("\\") ||
+      line.startsWith("%") ||
+      isProtected ||
+      line.includes("&") ||
+      line.endsWith("\\\\");
+
+    if (isStructural) {
+      flushParagraph();
+      if (closing && closing !== "document") indentation = Math.max(0, indentation - 1);
+      output.push(`${"  ".repeat(indentation)}${line}`);
+    } else {
+      if (paragraphWords.length === 0) paragraphIndentation = indentation;
+      paragraphWords.push(...line.split(/\s+/));
+    }
+
     if (
       opening &&
       opening !== "document" &&
       !line.includes(`\\end{${opening}}`)
     ) {
       indentation += 1;
+      environments.push(opening);
+    }
+    if (closing) {
+      const matchingIndex = environments.lastIndexOf(closing);
+      if (matchingIndex >= 0) environments.splice(matchingIndex, 1);
     }
   }
 
+  flushParagraph();
   while (output.at(-1) === "") output.pop();
   return `${output.join("\n")}\n`;
+}
+
+function wrapWords(words: string[], indentation: number, lineWidth: number): string[] {
+  const prefix = "  ".repeat(indentation);
+  const width = Math.max(lineWidth, prefix.length + 20);
+  const lines: string[] = [];
+  let current = prefix;
+
+  for (const word of words) {
+    const separator = current === prefix ? "" : " ";
+    if (current.length > prefix.length && current.length + separator.length + word.length > width) {
+      lines.push(current);
+      current = `${prefix}${word}`;
+    } else {
+      current += `${separator}${word}`;
+    }
+  }
+  if (current.length > prefix.length) lines.push(current);
+  return lines;
 }
 
 function snippet(

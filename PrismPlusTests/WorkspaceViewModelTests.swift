@@ -94,13 +94,38 @@ struct WorkspaceViewModelTests {
         #expect(model.buildState == .succeeded)
         #expect(await compiler.compilationCount == 1)
     }
+
+    @Test("Saving a compiled PDF beside its source refreshes the project")
+    func savesPDFBesideSource() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PrismPlusAdjacentPDF-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let expectedPDF = Data("compiled-pdf".utf8)
+        let compiler = RecordingCompiler(pdfData: expectedPDF)
+        let model = WorkspaceViewModel(compiler: compiler)
+        try model.loadProject(at: root)
+
+        #expect(model.createProjectFile(named: "paper", in: root))
+        try await Task.sleep(for: .milliseconds(100))
+        model.savePDFBesideSource()
+
+        let destination = root.appendingPathComponent("paper.pdf")
+        #expect(try Data(contentsOf: destination) == expectedPDF)
+        #expect(model.projectNodes.contains { $0.name == "paper.pdf" && !$0.isOpenable })
+    }
 }
 
 private actor RecordingCompiler: LaTeXCompiling {
     private(set) var compilationCount = 0
+    private let pdfData: Data?
+
+    init(pdfData: Data? = nil) {
+        self.pdfData = pdfData
+    }
 
     func compile(source: String) async throws -> CompilationResult {
         compilationCount += 1
-        return CompilationResult(succeeded: true, pdfData: nil, diagnostics: [], log: "")
+        return CompilationResult(succeeded: true, pdfData: pdfData, diagnostics: [], log: "")
     }
 }

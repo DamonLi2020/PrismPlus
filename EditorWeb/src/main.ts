@@ -17,6 +17,7 @@ type BridgeWindow = Window & {
   prismPlus?: {
     focus: () => void;
     format: () => void;
+    revealLine: (line: number) => void;
     setSource: (source: string) => void;
   };
   webkit?: {
@@ -98,6 +99,10 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
   minimap: { enabled: false },
   padding: { top: 12, bottom: 16 },
   scrollBeyondLastLine: false,
+  wordWrap: "bounded",
+  wordWrapColumn: 100,
+  wrappingIndent: "same",
+  wrappingStrategy: "advanced",
   smoothScrolling: true,
   cursorSmoothCaretAnimation: "on",
   bracketPairColorization: { enabled: true },
@@ -207,6 +212,14 @@ editor.onDidChangeModelContent((event) => {
 bridgeWindow.prismPlus = {
   focus: () => editor.focus(),
   format: () => editor.getAction("editor.action.formatDocument")?.run(),
+  revealLine(line: number) {
+    const model = editor.getModel();
+    if (!model) return;
+    const safeLine = Math.min(Math.max(Math.trunc(line), 1), model.getLineCount());
+    editor.setPosition({ lineNumber: safeLine, column: 1 });
+    editor.revealLineInCenterIfOutsideViewport(safeLine);
+    editor.focus();
+  },
   setSource(source: string) {
     if (editor.getValue() === source) return;
     const viewState = editor.saveViewState();

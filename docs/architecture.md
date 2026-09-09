@@ -6,7 +6,8 @@
 SwiftUI workspace
   ├─ Welcome and Explorer states
   │    ├─ full visible project resource tree
-  │    └─ .tex-only editor selection boundary
+  │    ├─ .tex-only editor selection boundary
+  │    └─ current-file LaTeX outline and source-line navigation
   ├─ Monaco LaTeX editor in a local-only WKWebView
   │    ├─ language configuration and snippets (TypeScript)
   │    └─ narrow Swift/JavaScript source and readiness bridge
@@ -16,8 +17,8 @@ SwiftUI workspace
   │              ├─ TectonicCommandBuilder
   │              ├─ ProcessRunning boundary
   │              └─ isolated temporary build directory
-  ├─ LaTeXDiagnosticParser
-  └─ PDFKit preview
+  ├─ LaTeXDiagnosticParser and LaTeXOutlineParser
+  └─ PDFKit preview and local PDF export boundary
 ```
 
 Compilation is debounced, and an older task is cancelled when newer source arrives. The compiler
@@ -26,11 +27,14 @@ PDF data, diagnostics, and a full log. UI objects never own or operate a `Proces
 
 The editor follows VS Code's separation of concerns: Monaco owns editing behavior and rendering;
 the LaTeX language module owns tokens, completion data, structural pairs, indentation, and
-formatting. Vite packages both into local application resources. A private read-only WebKit URL
+formatting. Formatting visually wraps source at the viewport and conservatively reflows plain
+prose while preserving commands, comments, math, tables, and code-like environments. Vite packages
+the editor into local application resources. A private read-only WebKit URL
 scheme serves only files beneath that resource directory, so the editor needs no server or network.
 
 PDF replacement is performed in place with animation disabled while preserving page, destination,
-and zoom. Automatic builds are debounced and deferred while completion syntax or delimiters are
+and zoom. Exported PDF data is written atomically either to a user-selected destination (starting
+in Downloads) or beside the saved `.tex` source. Automatic builds are debounced and deferred while completion syntax or delimiters are
 visibly incomplete. The initial workspace does not create or compile a document until the user
 chooses a welcome-page action or selects a `.tex` resource.
 
