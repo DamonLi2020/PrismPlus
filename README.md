@@ -27,7 +27,8 @@ The current vertical slice provides:
 
 - macOS 14 or newer
 - Xcode 26 or newer
-- Tectonic available at `/opt/homebrew/bin/tectonic`
+- Tectonic available at `/opt/homebrew/bin/tectonic` for development builds; friend prototype
+  packages bundle the compiler
 - XcodeGen when regenerating the project
 - Node.js 24 or newer only when changing or rebuilding the embedded editor
 
@@ -53,3 +54,16 @@ Prism Plus executes Tectonic directly with `--untrusted` and
 `TECTONIC_UNTRUSTED_MODE=1`. It never builds a shell command from document text.
 
 Third-party notices are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Friend prototype package
+
+On an Apple-silicon development Mac with Tectonic and XcodeGen installed, run:
+
+```sh
+./scripts/package-prototype.sh
+```
+
+The script builds a Release app, bundles and relocates the Tectonic runtime, ad-hoc signs the
+result, and creates a DMG plus ZIP and SHA-256 checksums under `dist/`. This is suitable for private
+prototype feedback. A public release still requires an Apple Developer ID signature, notarization,
+and a final audit of all redistributed third-party licenses.

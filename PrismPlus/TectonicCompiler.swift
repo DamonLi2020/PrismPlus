@@ -16,10 +16,10 @@ actor TectonicCompiler: LaTeXCompiling {
     private let processRunner: any ProcessRunning
 
     init(
-        executableURL: URL = URL(fileURLWithPath: "/opt/homebrew/bin/tectonic"),
+        executableURL: URL? = nil,
         processRunner: any ProcessRunning = FoundationProcessRunner()
     ) {
-        self.executableURL = executableURL
+        self.executableURL = executableURL ?? TectonicExecutableLocator.locate()
         self.processRunner = processRunner
     }
 

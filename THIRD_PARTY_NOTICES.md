@@ -1,5 +1,16 @@
 # Third-Party Notices
 
+## Tectonic
+
+Prototype packages of Prism Plus include Tectonic 0.17.0 and its dynamically linked runtime
+libraries so LaTeX compilation works without a separate Homebrew installation. Tectonic is
+licensed under the MIT License; elements from which it is derived use a variety of open-source
+licenses. Prototype packages also carry the license texts supplied with Tectonic, FreeType,
+Graphite2, HarfBuzz, ICU, libpng, GLib, gettext/libintl, and PCRE2 under
+`Contents/Resources/Licenses/`.
+
+Source and license: https://github.com/tectonic-typesetting/tectonic
+
 ## Monaco Editor
 
 Prism Plus includes Monaco Editor 0.56.0, copyright 2016–present Microsoft Corporation.

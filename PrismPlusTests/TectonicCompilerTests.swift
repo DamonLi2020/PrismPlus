@@ -4,6 +4,49 @@ import Testing
 @testable import PrismPlus
 
 struct TectonicCompilerTests {
+    @Test("Bundled Tectonic takes priority over machine-specific fallbacks")
+    func prefersBundledCompiler() {
+        let bundledURL = URL(
+            fileURLWithPath: "/Applications/Prism Plus.app/Contents/MacOS/tectonic")
+        let selectedURL = TectonicExecutableLocator.select(
+            bundledExecutableURL: bundledURL,
+            fallbackCandidates: [URL(fileURLWithPath: "/opt/homebrew/bin/tectonic")],
+            fileExists: { _ in true }
+        )
+
+        #expect(selectedURL == bundledURL)
+    }
+
+    @Test("An installed Tectonic is used while developing outside an app bundle")
+    func selectsFirstInstalledFallback() {
+        let candidates = [
+            URL(fileURLWithPath: "/opt/homebrew/bin/tectonic"),
+            URL(fileURLWithPath: "/usr/local/bin/tectonic"),
+        ]
+        let selectedURL = TectonicExecutableLocator.select(
+            bundledExecutableURL: nil,
+            fallbackCandidates: candidates,
+            fileExists: { $0 == candidates[1].path }
+        )
+
+        #expect(selectedURL == candidates[1])
+    }
+
+    @Test("A useful conventional path is retained when Tectonic is not installed")
+    func retainsFallbackForActionableLaunchError() {
+        let candidates = [
+            URL(fileURLWithPath: "/opt/homebrew/bin/tectonic"),
+            URL(fileURLWithPath: "/usr/local/bin/tectonic"),
+        ]
+        let selectedURL = TectonicExecutableLocator.select(
+            bundledExecutableURL: nil,
+            fallbackCandidates: candidates,
+            fileExists: { _ in false }
+        )
+
+        #expect(selectedURL == candidates[0])
+    }
+
     @Test("Compiler writes source, invokes Tectonic safely, and returns generated PDF")
     func compilesInIsolatedWorkspace() async throws {
         let runner = SuccessfulProcessRunner()

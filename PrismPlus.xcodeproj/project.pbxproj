@@ -27,6 +27,7 @@
 		768F29EC8EFE50885DF2FFE7 /* DocumentOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25E7EF42FEA5B206F6F1F60 /* DocumentOutlineView.swift */; };
 		7DDAE3335693D4BBC28986F6 /* LaTeXDiagnosticParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEEDB88B2DA9DDF68DC1224 /* LaTeXDiagnosticParserTests.swift */; };
 		8439B3075A89765B94666B96 /* ProjectResourceManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF547C3EDD6A0103C5669A3 /* ProjectResourceManagerTests.swift */; };
+		84BA8A1DD2772B7F1FECEF6B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 548BCD1132ED6437A4F01379 /* Assets.xcassets */; };
 		886986DEC48D247095475A24 /* PrismPlusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E031E647AD20C97B20A374 /* PrismPlusApp.swift */; };
 		8AA60AE75320665A1ADF5F3C /* LaTeXDiagnosticParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62785E299C8753A0E9BB794 /* LaTeXDiagnosticParser.swift */; };
 		911DD5F8049436ACAE4018D7 /* LaTeXSourceReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7CB2AF8D7D1B9B4E9F20C2 /* LaTeXSourceReadinessTests.swift */; };
@@ -38,6 +39,7 @@
 		B585FD97917E802784D53134 /* LaTeXSourceReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27687ECF3D504FC44AE90E02 /* LaTeXSourceReadiness.swift */; };
 		BF970159ED9E35AD92DFB5C7 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3CBC420AC182D58ACE844BC /* WorkspaceView.swift */; };
 		CFB645DA6E9023D18D00C171 /* WorkspaceViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057D81654E5D4DDDF2937E3 /* WorkspaceViewModelTests.swift */; };
+		E737453DFF6D6D10F6854F55 /* TectonicExecutableLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AE2C441616A889A86001AC /* TectonicExecutableLocator.swift */; };
 		EBBDA650AAAD369DD39DFA25 /* TectonicCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D20CA851785C30A8EA965E /* TectonicCommandBuilderTests.swift */; };
 		F276DFD7C73FFFE8F5B2DC6C /* PDFKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDE88BB1BD7F8C4E97CE959B /* PDFKit.framework */; };
 		F8B1FF6471150145ABC97CB9 /* ProjectResourceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107C12B3CC7B6B313023450E /* ProjectResourceManager.swift */; };
@@ -71,9 +73,11 @@
 		4E8DF54078C8291B96E7D427 /* TectonicCompiler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TectonicCompiler.swift; sourceTree = "<group>"; };
 		5387A034F903008D25148A69 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
 		53BD997D367C2B79DDBCA43B /* CompilationArtifactLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationArtifactLoaderTests.swift; sourceTree = "<group>"; };
+		548BCD1132ED6437A4F01379 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		61423680AACBF5EFF036B17D /* ProcessInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessInvocation.swift; sourceTree = "<group>"; };
 		6FBB830572CA65092E0F6BFF /* CompilationDiagnostic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationDiagnostic.swift; sourceTree = "<group>"; };
 		73B789C3C329B9B98B03DF9E /* ExplorerEditPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerEditPolicy.swift; sourceTree = "<group>"; };
+		77AE2C441616A889A86001AC /* TectonicExecutableLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TectonicExecutableLocator.swift; sourceTree = "<group>"; };
 		7EF547C3EDD6A0103C5669A3 /* ProjectResourceManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectResourceManagerTests.swift; sourceTree = "<group>"; };
 		846C25698E89B9D3C34AFE29 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		89134B9D7F63368A21F357C2 /* CompilationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompilationResult.swift; sourceTree = "<group>"; };
@@ -138,6 +142,7 @@
 		55F5EFDFAEDAB40BE165F9F9 /* PrismPlus */ = {
 			isa = PBXGroup;
 			children = (
+				548BCD1132ED6437A4F01379 /* Assets.xcassets */,
 				6FBB830572CA65092E0F6BFF /* CompilationDiagnostic.swift */,
 				89134B9D7F63368A21F357C2 /* CompilationResult.swift */,
 				C25E7EF42FEA5B206F6F1F60 /* DocumentOutlineView.swift */,
@@ -157,6 +162,7 @@
 				107C12B3CC7B6B313023450E /* ProjectResourceManager.swift */,
 				E0A7A21F9D12F98B22B8FB9D /* ProjectScanner.swift */,
 				4E8DF54078C8291B96E7D427 /* TectonicCompiler.swift */,
+				77AE2C441616A889A86001AC /* TectonicExecutableLocator.swift */,
 				F3CBC420AC182D58ACE844BC /* WorkspaceView.swift */,
 				D5C1C5B7FFF1C86633128318 /* WorkspaceViewModel.swift */,
 			);
@@ -266,6 +272,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				84BA8A1DD2772B7F1FECEF6B /* Assets.xcassets in Resources */,
 				22DA548458DB788294367E88 /* EditorResources in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -295,6 +302,7 @@
 				F8B1FF6471150145ABC97CB9 /* ProjectResourceManager.swift in Sources */,
 				1BAC3986D550A6694984EB9E /* ProjectScanner.swift in Sources */,
 				1931C71C3EEB72E303E68183 /* TectonicCompiler.swift in Sources */,
+				E737453DFF6D6D10F6854F55 /* TectonicExecutableLocator.swift in Sources */,
 				BF970159ED9E35AD92DFB5C7 /* WorkspaceView.swift in Sources */,
 				A49224E66397FA40080BE374 /* WorkspaceViewModel.swift in Sources */,
 			);
@@ -335,6 +343,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Prism Plus";
@@ -344,6 +353,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.damonli.PrismPlus;
 				SDKROOT = macosx;
 			};
@@ -515,6 +525,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Prism Plus";
@@ -524,6 +535,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.damonli.PrismPlus;
 				SDKROOT = macosx;
 			};
