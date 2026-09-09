@@ -50,7 +50,11 @@ enum ProjectResourceManager {
                 withIntermediateDirectories: false
             )
         } else {
-            try Data().write(to: destinationURL, options: .withoutOverwriting)
+            let contents =
+                kind == .latexFile
+                ? Data(LaTeXDocumentTemplate.standard.utf8)
+                : Data()
+            try contents.write(to: destinationURL, options: .withoutOverwriting)
         }
         return destinationURL
     }

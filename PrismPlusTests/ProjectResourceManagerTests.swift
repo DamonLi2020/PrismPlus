@@ -19,7 +19,13 @@ struct ProjectResourceManagerTests {
 
         #expect(createdURL == chapters.appendingPathComponent("introduction.tex"))
         #expect(FileManager.default.fileExists(atPath: createdURL.path))
-        #expect(try String(contentsOf: createdURL, encoding: .utf8) == "")
+        let source = try String(contentsOf: createdURL, encoding: .utf8)
+        #expect(source.contains(#"\documentclass[11pt]{article}"#))
+        #expect(source.contains(#"\title{Your Document Title}"#))
+        #expect(source.contains(#"\author{Damon Li}"#))
+        #expect(source.contains(#"\begin{document}"#))
+        #expect(source.contains("Start writing here."))
+        #expect(source.contains(#"\end{document}"#))
     }
 
     @Test("An existing tex suffix is not duplicated")

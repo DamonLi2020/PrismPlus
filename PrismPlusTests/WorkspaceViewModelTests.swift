@@ -27,7 +27,10 @@ struct WorkspaceViewModelTests {
         model.newDocument()
 
         #expect(model.hasOpenDocument)
+        #expect(model.source.contains(#"\title{Your Document Title}"#))
+        #expect(model.source.contains(#"\author{Damon Li}"#))
         #expect(model.source.contains(#"\begin{document}"#))
+        #expect(model.source.contains("Start writing here."))
         #expect(model.documentTitle == "Untitled.tex")
     }
 
@@ -70,8 +73,8 @@ struct WorkspaceViewModelTests {
         #expect(model.selectedExplorerDirectoryURL == folders[1].url)
     }
 
-    @Test("Creating an empty project file opens it without compiling incomplete source")
-    func opensNewEmptyFileWithoutCompiling() async throws {
+    @Test("Creating a project file opens and compiles its starter document")
+    func opensAndCompilesNewFileTemplate() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("PrismPlusNewFile-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -85,8 +88,11 @@ struct WorkspaceViewModelTests {
 
         #expect(created)
         #expect(model.fileURL == root.appendingPathComponent("chapter.tex"))
-        #expect(model.buildState == .idle)
-        #expect(await compiler.compilationCount == 0)
+        #expect(model.source.contains(#"\documentclass[11pt]{article}"#))
+        #expect(model.source.contains(#"\title{Your Document Title}"#))
+        #expect(model.source.contains("Start writing here."))
+        #expect(model.buildState == .succeeded)
+        #expect(await compiler.compilationCount == 1)
     }
 }
 

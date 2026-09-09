@@ -108,7 +108,7 @@ final class WorkspaceViewModel: ObservableObject {
     func newDocument() {
         guard confirmDiscardIfNeeded() else { return }
         fileURL = nil
-        source = Self.starterDocument
+        source = LaTeXDocumentTemplate.standard
         pdfData = nil
         diagnostics = []
         log = ""
@@ -193,7 +193,7 @@ final class WorkspaceViewModel: ObservableObject {
                 projectRoot: projectRootURL
             )
             try refreshProject()
-            try loadDocument(at: selectedURL, compileAfterLoading: false)
+            try loadDocument(at: selectedURL)
             return true
         } catch {
             presentError(error)
@@ -388,26 +388,6 @@ final class WorkspaceViewModel: ObservableObject {
         let alert = NSAlert(error: error)
         alert.runModal()
     }
-
-    private static let starterDocument = #"""
-        \documentclass[11pt]{article}
-        \usepackage{amsmath}
-
-        \title{Prism Plus}
-        \author{Damon Li}
-        \date{\today}
-
-        \begin{document}
-        \maketitle
-
-        \section{A local LaTeX workspace}
-        Edit this source and the PDF preview will update automatically.
-
-        \[
-          e^{i\pi} + 1 = 0
-        \]
-        \end{document}
-        """#
 
     private static let texContentType = UTType(filenameExtension: "tex") ?? .plainText
 }
