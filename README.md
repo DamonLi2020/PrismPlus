@@ -7,8 +7,8 @@ compilation, and a live PDF preview.
 
 The current vertical slice provides:
 
-- a VS Code-style activity rail and project explorer that shows the full resource tree while
-  opening only `.tex` documents;
+- a VS Code-style activity rail and project explorer with inline file/folder creation, contextual
+  rename/reveal/trash actions, last-open-folder targeting, and `.tex`-only document opening;
 - a welcome page with new-document, open-file, and open-folder actions;
 - a split LaTeX source editor and PDF workspace after a document is opened;
 - an embedded offline Monaco editor—the same editor core used by VS Code;

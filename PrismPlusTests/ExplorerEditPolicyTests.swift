@@ -3,10 +3,23 @@ import Testing
 @testable import PrismPlus
 
 struct ExplorerEditPolicyTests {
-    @Test("An unnamed inline resource is cancelled when focus leaves")
-    func cancelsEmptyInlineCreation() {
-        #expect(ExplorerEditPolicy.shouldCancelWhenFocusLeaves(name: ""))
-        #expect(ExplorerEditPolicy.shouldCancelWhenFocusLeaves(name: "   "))
-        #expect(!ExplorerEditPolicy.shouldCancelWhenFocusLeaves(name: "chapter"))
+    @Test("The first click away commits a name or cancels an empty placeholder")
+    func resolvesFirstClickAway() {
+        #expect(
+            ExplorerEditPolicy.actionForExplorerClick(hasActiveEdit: true, name: "")
+                == .cancelAndConsume
+        )
+        #expect(
+            ExplorerEditPolicy.actionForExplorerClick(hasActiveEdit: true, name: "   ")
+                == .cancelAndConsume
+        )
+        #expect(
+            ExplorerEditPolicy.actionForExplorerClick(hasActiveEdit: true, name: "chapter")
+                == .commitAndConsume
+        )
+        #expect(
+            ExplorerEditPolicy.actionForExplorerClick(hasActiveEdit: false, name: "")
+                == .performNormally
+        )
     }
 }

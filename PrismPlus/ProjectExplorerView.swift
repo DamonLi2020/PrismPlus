@@ -5,8 +5,10 @@ struct ProjectExplorerView: View {
 
     @State private var isRootExpanded = true
     @State private var expandedDirectories: Set<URL> = []
+    @State private var folderClickHistory: [URL] = []
     @State private var editOperation: ExplorerEditOperation?
     @State private var editName = ""
+    @State private var focusLossTask: Task<Void, Never>?
     @FocusState private var isNameFieldFocused: Bool
 
     var body: some View {
@@ -23,15 +25,17 @@ struct ProjectExplorerView: View {
         .onChange(of: model.projectRootURL) {
             isRootExpanded = true
             expandedDirectories.removeAll()
+            folderClickHistory.removeAll()
             cancelEditing()
         }
         .onChange(of: isNameFieldFocused) { _, isFocused in
-            guard
-                !isFocused,
-                editOperation != nil,
-                ExplorerEditPolicy.shouldCancelWhenFocusLeaves(name: editName)
-            else { return }
-            cancelEditing()
+            focusLossTask?.cancel()
+            guard !isFocused, editOperation != nil else { return }
+            focusLossTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled, !isNameFieldFocused, editOperation != nil else { return }
+                resolveActiveEdit()
+            }
         }
     }
 
@@ -113,7 +117,11 @@ struct ProjectExplorerView: View {
     private func rootRow(rootURL: URL) -> some View {
         HStack(spacing: 6) {
             Button {
+                guard !consumeExplorerClickIfNeeded() else { return }
                 isRootExpanded.toggle()
+                if !isRootExpanded {
+                    expandedDirectories.removeAll()
+                }
             } label: {
                 Image(systemName: isRootExpanded ? "chevron.down" : "chevron.right")
                     .font(.caption2.weight(.bold))
@@ -122,7 +130,7 @@ struct ProjectExplorerView: View {
             .help(isRootExpanded ? "Collapse Project" : "Expand Project")
 
             Button {
-                cancelEmptyEditing()
+                guard !consumeExplorerClickIfNeeded() else { return }
                 model.selectExplorerRoot()
             } label: {
                 Text(rootURL.lastPathComponent.uppercased())
@@ -211,21 +219,12 @@ struct ProjectExplorerView: View {
     private func nodeRow(_ row: ExplorerRow) -> some View {
         HStack(spacing: 4) {
             if row.node.isDirectory {
-                Button {
-                    toggleExpanded(row.node.url)
-                } label: {
-                    Image(
-                        systemName: expandedDirectories.contains(row.node.url)
-                            ? "chevron.down" : "chevron.right"
-                    )
-                    .font(.caption2.weight(.semibold))
-                    .frame(width: 12, height: 22)
-                }
-                .buttonStyle(.plain)
-                .help(
-                    expandedDirectories.contains(row.node.url)
-                        ? "Collapse Folder" : "Expand Folder"
+                Image(
+                    systemName: expandedDirectories.contains(row.node.url)
+                        ? "chevron.down" : "chevron.right"
                 )
+                .font(.caption2.weight(.semibold))
+                .frame(width: 12, height: 22)
             } else {
                 Color.clear.frame(width: 12, height: 22)
             }
@@ -333,9 +332,9 @@ struct ProjectExplorerView: View {
     }
 
     private func select(_ node: ProjectNode) {
-        cancelEmptyEditing()
+        guard !consumeExplorerClickIfNeeded() else { return }
         if node.isDirectory {
-            selectFolder(node)
+            toggleFolder(node)
         } else if node.isOpenable {
             model.selectProjectNode(node)
         }
@@ -344,35 +343,44 @@ struct ProjectExplorerView: View {
     private func selectFolder(_ node: ProjectNode) {
         model.selectExplorerDirectory(node)
         expandedDirectories.insert(node.url)
+        recordFolderClick(node.url)
     }
 
-    private func toggleExpanded(_ url: URL) {
-        if expandedDirectories.contains(url) {
-            expandedDirectories.remove(url)
+    private func toggleFolder(_ node: ProjectNode) {
+        model.selectExplorerDirectory(node)
+        recordFolderClick(node.url)
+        if expandedDirectories.contains(node.url) {
+            let descendantDirectories = Set(
+                node.flattened.filter(\.isDirectory).map(\.url)
+            )
+            expandedDirectories.subtract(descendantDirectories)
         } else {
-            expandedDirectories.insert(url)
+            expandedDirectories.insert(node.url)
         }
     }
 
+    private func recordFolderClick(_ url: URL) {
+        folderClickHistory.removeAll(where: { $0 == url })
+        folderClickHistory.append(url)
+    }
+
     private func beginCreatingFile(in requestedDirectory: URL? = nil) {
-        guard
-            let directoryURL = requestedDirectory ?? model.selectedExplorerDirectoryURL
-                ?? model.projectRootURL
-        else { return }
+        guard let directoryURL = creationDirectory(requestedDirectory) else { return }
         isRootExpanded = true
-        expandedDirectories.insert(directoryURL)
+        if directoryURL != model.projectRootURL {
+            expandedDirectories.insert(directoryURL)
+        }
         editOperation = .createFile(parentURL: directoryURL)
         editName = ""
         focusNameField()
     }
 
     private func beginCreatingFolder(in requestedDirectory: URL? = nil) {
-        guard
-            let directoryURL = requestedDirectory ?? model.selectedExplorerDirectoryURL
-                ?? model.projectRootURL
-        else { return }
+        guard let directoryURL = creationDirectory(requestedDirectory) else { return }
         isRootExpanded = true
-        expandedDirectories.insert(directoryURL)
+        if directoryURL != model.projectRootURL {
+            expandedDirectories.insert(directoryURL)
+        }
         editOperation = .createFolder(parentURL: directoryURL)
         editName = ""
         focusNameField()
@@ -413,14 +421,42 @@ struct ProjectExplorerView: View {
     }
 
     private func cancelEditing() {
+        focusLossTask?.cancel()
+        focusLossTask = nil
         editOperation = nil
         editName = ""
         isNameFieldFocused = false
     }
 
-    private func cancelEmptyEditing() {
-        guard ExplorerEditPolicy.shouldCancelWhenFocusLeaves(name: editName) else { return }
-        cancelEditing()
+    private func creationDirectory(_ requestedDirectory: URL?) -> URL? {
+        if let requestedDirectory { return requestedDirectory }
+        guard let projectRootURL = model.projectRootURL else { return nil }
+        return ExplorerCreationDestination.resolve(
+            projectRoot: projectRootURL,
+            expandedDirectories: expandedDirectories,
+            folderClickHistory: folderClickHistory
+        )
+    }
+
+    @discardableResult
+    private func resolveActiveEdit() -> Bool {
+        switch ExplorerEditPolicy.actionForExplorerClick(
+            hasActiveEdit: editOperation != nil,
+            name: editName
+        ) {
+        case .performNormally:
+            return false
+        case .commitAndConsume:
+            commitEditing()
+            return true
+        case .cancelAndConsume:
+            cancelEditing()
+            return true
+        }
+    }
+
+    private func consumeExplorerClickIfNeeded() -> Bool {
+        resolveActiveEdit()
     }
 
     private func selectionColor(for node: ProjectNode) -> Color {
