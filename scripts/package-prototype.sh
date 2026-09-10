@@ -166,7 +166,10 @@ hdiutil create \
     "$DMG_PATH"
 ditto -c -k --sequesterRsrc --keepParent "$APP_DESTINATION" "$ZIP_PATH"
 
-shasum -a 256 "$DMG_PATH" "$ZIP_PATH" > "$DIST_DIRECTORY/SHA256SUMS.txt"
+(
+    cd "$DIST_DIRECTORY"
+    shasum -a 256 "$(basename "$DMG_PATH")" "$(basename "$ZIP_PATH")" > SHA256SUMS.txt
+)
 
 echo
 echo "Prototype package ready:"

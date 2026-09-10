@@ -8,9 +8,23 @@
   A local-first, native macOS LaTeX editor with IDE-grade editing and a stable live PDF preview.
 </p>
 
-> **Project status:** Prism Plus is a pre-1.0 prototype. It is ready for testing and feedback, but
-> it is not yet notarized for public binary distribution. Back up important documents before
-> testing file-management features.
+> **Project status:** Prism Plus is a pre-1.0 prototype. A public preview is available for testing,
+> but it is ad-hoc signed and not notarized by Apple. Back up important documents before testing
+> file-management features.
+
+## Download the macOS preview
+
+[**Download Prism Plus 0.1.0 Preview 1 for Apple silicon (.dmg)**](https://github.com/DamonLi2020/PrismPlus/releases/download/v0.1.0-preview.1/PrismPlus-0.1.0-arm64.dmg)
+
+This build requires an M-series Mac and macOS 14 or newer. It is an unnotarized preview, so macOS
+will warn that Apple cannot verify the developer. After copying the app into Applications,
+Control-click **Prism Plus**, choose **Open**, and confirm. If macOS still blocks it, verify the
+[published SHA-256 checksum](https://github.com/DamonLi2020/PrismPlus/releases/download/v0.1.0-preview.1/SHA256SUMS.txt),
+then use **System Settings → Privacy & Security → Open Anyway**. Do not bypass Gatekeeper for a
+copy obtained from another source.
+
+Tectonic is included, so Homebrew and a separate LaTeX installation are unnecessary for this
+download. Tectonic may access the network on first compilation to download TeX support files.
 
 ## What Prism Plus offers
 
@@ -146,7 +160,7 @@ enabled.
 - The project explorer intentionally opens only `.tex` files; other resources remain visible but
   disabled.
 - Prototype packaging currently targets Apple silicon only.
-- There is no notarized downloadable release yet.
+- The downloadable preview is ad-hoc signed and not Apple-notarized.
 - Tectonic may require internet access during the first compilation or when a new package is used.
 - Multi-file LaTeX project intelligence is still being expanded.
 
