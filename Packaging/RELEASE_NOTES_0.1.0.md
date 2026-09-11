@@ -1,6 +1,6 @@
-# Prism Plus 0.1.0 Preview 1
+# Prism Plus 0.1.0
 
-This is the first public preview of Prism Plus, a local-first native macOS LaTeX editor.
+Prism Plus 0.1.0 is the first public prototype of the local-first native macOS LaTeX editor.
 
 ## Read before downloading
 
@@ -32,12 +32,14 @@ This is the first public preview of Prism Plus, a local-first native macOS LaTeX
 Do not disable Gatekeeper globally and do not remove quarantine protection from a copy downloaded
 from another source.
 
-## Included in this preview
+## Included in 0.1.0
 
 - Monaco-powered LaTeX editing, completion, snippets, pairing, and formatting
 - Live Tectonic compilation and stable PDFKit preview
-- Project explorer with inline file and folder management
-- Document outline with click-to-jump navigation
+- Project explorer with inline file and folder management, Finder drag-and-drop, and live filesystem
+  synchronization
+- Hierarchical document outline with click-to-jump navigation
+- Project-aware image compilation
 - Clickable diagnostics and red/yellow source markers
 - PDF download and export beside the source document
 - Bundled Tectonic compiler and runtime licenses
