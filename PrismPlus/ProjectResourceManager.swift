@@ -11,6 +11,7 @@ enum ProjectResourceError: LocalizedError {
     case invalidName
     case outsideProject
     case alreadyExists(String)
+    case cannotMoveIntoDescendant(String)
 
     var errorDescription: String? {
         switch self {
@@ -22,6 +23,8 @@ enum ProjectResourceError: LocalizedError {
             "Prism Plus can manage resources only inside the open project."
         case .alreadyExists(let name):
             "A file or folder named '\(name)' already exists."
+        case .cannotMoveIntoDescendant(let name):
+            "“\(name)” cannot be moved inside itself."
         }
     }
 }
@@ -88,6 +91,46 @@ enum ProjectResourceManager {
             throw ProjectResourceError.outsideProject
         }
         try FileManager.default.trashItem(at: resourceURL, resultingItemURL: nil)
+    }
+
+    static func moveImportedResources(
+        _ sourceURLs: [URL],
+        into directoryURL: URL,
+        projectRoot: URL
+    ) throws -> [URL] {
+        try requireInsideProject(directoryURL, projectRoot: projectRoot)
+
+        let moves = try sourceURLs.map { sourceURL -> (source: URL, destination: URL) in
+            let source = sourceURL.standardizedFileURL
+            let destination =
+                directoryURL
+                .appendingPathComponent(source.lastPathComponent)
+                .standardizedFileURL
+            try requireInsideProject(destination, projectRoot: projectRoot)
+
+            let sourcePath = source.resolvingSymlinksInPath().path
+            let destinationPath = destination.resolvingSymlinksInPath().path
+            let sourcePrefix = sourcePath.hasSuffix("/") ? sourcePath : "\(sourcePath)/"
+            guard !destinationPath.hasPrefix(sourcePrefix) else {
+                throw ProjectResourceError.cannotMoveIntoDescendant(source.lastPathComponent)
+            }
+            return (source, destination)
+        }
+
+        var destinationNames = Set<String>()
+        for move in moves where move.source != move.destination {
+            guard destinationNames.insert(move.destination.lastPathComponent).inserted else {
+                throw ProjectResourceError.alreadyExists(move.destination.lastPathComponent)
+            }
+            guard !FileManager.default.fileExists(atPath: move.destination.path) else {
+                throw ProjectResourceError.alreadyExists(move.destination.lastPathComponent)
+            }
+        }
+
+        for move in moves where move.source != move.destination {
+            try FileManager.default.moveItem(at: move.source, to: move.destination)
+        }
+        return moves.map(\.destination)
     }
 
     static func kind(for node: ProjectNode) -> ProjectResourceKind {

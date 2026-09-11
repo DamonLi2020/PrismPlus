@@ -12,6 +12,20 @@ struct ProjectNode: Identifiable, Equatable, Sendable {
     var flattened: [ProjectNode] {
         [self] + (children ?? []).flatMap(\.flattened)
     }
+
+    func replacingChildren(of directoryURL: URL, with updatedChildren: [ProjectNode]) -> Self {
+        if url == directoryURL {
+            return ProjectNode(url: url, isDirectory: isDirectory, children: updatedChildren)
+        }
+        guard let children else { return self }
+        return ProjectNode(
+            url: url,
+            isDirectory: isDirectory,
+            children: children.map {
+                $0.replacingChildren(of: directoryURL, with: updatedChildren)
+            }
+        )
+    }
 }
 
 enum ProjectScanner {
@@ -32,8 +46,7 @@ enum ProjectScanner {
 
             if values.isDirectory == true {
                 guard !ignoredDirectories.contains(url.lastPathComponent) else { return nil }
-                let children = try scan(rootURL: url)
-                return ProjectNode(url: url, isDirectory: true, children: children)
+                return ProjectNode(url: url, isDirectory: true, children: nil)
             }
 
             return ProjectNode(url: url, isDirectory: false, children: nil)

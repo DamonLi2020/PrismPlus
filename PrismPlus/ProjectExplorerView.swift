@@ -8,6 +8,7 @@ struct ProjectExplorerView: View {
     @State private var folderClickHistory: [URL] = []
     @State private var editOperation: ExplorerEditOperation?
     @State private var editName = ""
+    @State private var dropDestinationURL: URL?
     @State private var focusLossTask: Task<Void, Never>?
     @FocusState private var isNameFieldFocused: Bool
 
@@ -27,6 +28,7 @@ struct ProjectExplorerView: View {
             isRootExpanded = true
             expandedDirectories.removeAll()
             folderClickHistory.removeAll()
+            dropDestinationURL = nil
             cancelEditing()
         }
         .onChange(of: isNameFieldFocused) { _, isFocused in
@@ -55,7 +57,7 @@ struct ProjectExplorerView: View {
                 }
                 .disabled(model.projectRootURL == nil)
                 Divider()
-                Button("Open LaTeX File…", systemImage: "doc") {
+                Button("Open File or Folder…", systemImage: "doc") {
                     model.openDocument()
                 }
                 Button("Open Folder…", systemImage: "folder") {
@@ -85,6 +87,9 @@ struct ProjectExplorerView: View {
             if isRootExpanded {
                 ScrollView {
                     LazyVStack(spacing: 1) {
+                        if dropDestinationURL == rootURL {
+                            dropPlaceholder(depth: 0)
+                        }
                         if editOperation?.createsInside(rootURL) == true {
                             inlineNameEditor(depth: 0)
                         }
@@ -93,6 +98,9 @@ struct ProjectExplorerView: View {
                                 inlineNameEditor(depth: row.depth)
                             } else {
                                 nodeRow(row)
+                            }
+                            if row.node.isDirectory, dropDestinationURL == row.node.url {
+                                dropPlaceholder(depth: row.depth + 1)
                             }
                             if editOperation?.createsInside(row.node.url) == true {
                                 inlineNameEditor(depth: row.depth + 1)
@@ -173,6 +181,12 @@ struct ProjectExplorerView: View {
         .contextMenu {
             rootContextMenu(rootURL: rootURL)
         }
+        .dropDestination(for: URL.self) { urls, _ in
+            dropDestinationURL = nil
+            return model.moveDroppedResources(urls, into: rootURL)
+        } isTargeted: { isTargeted in
+            updateDropTarget(rootURL, isTargeted: isTargeted)
+        }
     }
 
     private var noFolderView: some View {
@@ -217,8 +231,9 @@ struct ProjectExplorerView: View {
         }
     }
 
+    @ViewBuilder
     private func nodeRow(_ row: ExplorerRow) -> some View {
-        HStack(spacing: 4) {
+        let rowContent = HStack(spacing: 4) {
             if row.node.isDirectory {
                 Image(
                     systemName: expandedDirectories.contains(row.node.url)
@@ -242,6 +257,39 @@ struct ProjectExplorerView: View {
         .contextMenu {
             nodeContextMenu(row.node)
         }
+
+        if row.node.isDirectory {
+            rowContent
+                .dropDestination(for: URL.self) { urls, _ in
+                    dropDestinationURL = nil
+                    return model.moveDroppedResources(urls, into: row.node.url)
+                } isTargeted: { isTargeted in
+                    updateDropTarget(row.node.url, node: row.node, isTargeted: isTargeted)
+                }
+        } else {
+            rowContent
+        }
+    }
+
+    private func dropPlaceholder(depth: Int) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: "arrow.down.doc")
+                .foregroundStyle(Color.accentColor)
+            Text("Move here")
+                .foregroundStyle(Color.accentColor)
+            Spacer(minLength: 0)
+        }
+        .font(.callout.weight(.medium))
+        .padding(.leading, CGFloat(depth) * 14 + 20)
+        .padding(.trailing, 5)
+        .frame(height: 27)
+        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+        .overlay {
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.accentColor.opacity(0.8), style: StrokeStyle(dash: [4, 3]))
+        }
+        .allowsHitTesting(false)
+        .accessibilityLabel("Drop files to move them into this folder")
     }
 
     private func resourceLabel(for node: ProjectNode) -> some View {
@@ -343,6 +391,7 @@ struct ProjectExplorerView: View {
 
     private func selectFolder(_ node: ProjectNode) {
         model.selectExplorerDirectory(node)
+        model.expandProjectDirectory(node)
         expandedDirectories.insert(node.url)
         recordFolderClick(node.url)
     }
@@ -356,6 +405,7 @@ struct ProjectExplorerView: View {
             )
             expandedDirectories.subtract(descendantDirectories)
         } else {
+            model.expandProjectDirectory(node)
             expandedDirectories.insert(node.url)
         }
     }
@@ -363,6 +413,23 @@ struct ProjectExplorerView: View {
     private func recordFolderClick(_ url: URL) {
         folderClickHistory.removeAll(where: { $0 == url })
         folderClickHistory.append(url)
+    }
+
+    private func updateDropTarget(
+        _ directoryURL: URL,
+        node: ProjectNode? = nil,
+        isTargeted: Bool
+    ) {
+        if isTargeted {
+            dropDestinationURL = directoryURL
+            isRootExpanded = true
+            if let node {
+                model.expandProjectDirectory(node)
+                expandedDirectories.insert(directoryURL)
+            }
+        } else if dropDestinationURL == directoryURL {
+            dropDestinationURL = nil
+        }
     }
 
     private func beginCreatingFile(in requestedDirectory: URL? = nil) {

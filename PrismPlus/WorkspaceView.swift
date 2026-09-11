@@ -1,11 +1,29 @@
 import SwiftUI
 
+enum DocumentOutlineSidebarLayout: Equatable {
+    case explorerOnly
+    case explorerWithCollapsedOutline
+    case explorerWithExpandedOutline
+
+    init(isOutlineAvailable: Bool, isOutlineExpanded: Bool) {
+        guard isOutlineAvailable else {
+            self = .explorerOnly
+            return
+        }
+        self =
+            isOutlineExpanded
+            ? .explorerWithExpandedOutline
+            : .explorerWithCollapsedOutline
+    }
+}
+
 struct WorkspaceView: View {
     @StateObject private var model = WorkspaceViewModel()
     @State private var formatRequestID = 0
     @State private var isExplorerVisible = true
     @State private var navigationRequest: EditorNavigationRequest?
     @State private var nextNavigationRequestID = 0
+    @State private var isDocumentOutlineExpanded = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -103,18 +121,41 @@ struct WorkspaceView: View {
 
     @ViewBuilder
     private var projectSidebar: some View {
-        if model.hasOpenDocument {
+        switch documentOutlineSidebarLayout {
+        case .explorerOnly:
+            ProjectExplorerView(model: model)
+                .frame(maxHeight: .infinity)
+        case .explorerWithCollapsedOutline:
+            VStack(spacing: 0) {
+                ProjectExplorerView(model: model)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Divider()
+                documentOutline
+                    .frame(height: 34)
+            }
+        case .explorerWithExpandedOutline:
             VSplitView {
                 ProjectExplorerView(model: model)
                     .frame(minHeight: 220, idealHeight: 440, maxHeight: .infinity)
-                DocumentOutlineView(items: model.outlineItems) { line in
-                    navigateToSourceLine(line)
-                }
-                .frame(minHeight: 120, idealHeight: 220, maxHeight: .infinity)
+                documentOutline
+                    .frame(minHeight: 120, idealHeight: 220, maxHeight: .infinity)
             }
-        } else {
-            ProjectExplorerView(model: model)
-                .frame(maxHeight: .infinity)
+        }
+    }
+
+    private var documentOutlineSidebarLayout: DocumentOutlineSidebarLayout {
+        DocumentOutlineSidebarLayout(
+            isOutlineAvailable: model.shouldShowDocumentOutline,
+            isOutlineExpanded: isDocumentOutlineExpanded
+        )
+    }
+
+    private var documentOutline: some View {
+        DocumentOutlineView(
+            items: model.outlineItems,
+            isExpanded: $isDocumentOutlineExpanded
+        ) { line in
+            navigateToSourceLine(line)
         }
     }
 
@@ -142,7 +183,7 @@ struct WorkspaceView: View {
                         welcomeAction("New LaTeX Document", systemImage: "doc.badge.plus") {
                             model.newDocument()
                         }
-                        welcomeAction("Open LaTeX File…", systemImage: "doc") {
+                        welcomeAction("Open File or Folder…", systemImage: "doc") {
                             model.openDocument()
                         }
                         welcomeAction("Open Folder…", systemImage: "folder") {

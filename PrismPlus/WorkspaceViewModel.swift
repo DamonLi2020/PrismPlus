@@ -36,10 +36,22 @@ final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var hasOpenDocument = false
 
     private let compiler: any LaTeXCompiling
+    private let projectFolderPicker: any ProjectFolderPicking
+    private let workspaceResourcePicker: any WorkspaceResourcePicking
+    private let projectDirectoryMonitor: any ProjectDirectoryMonitoring
     private var compilationTask: Task<Void, Never>?
+    private var projectRefreshTask: Task<Void, Never>?
 
-    init(compiler: any LaTeXCompiling = TectonicCompiler()) {
+    init(
+        compiler: any LaTeXCompiling = TectonicCompiler(),
+        projectFolderPicker: any ProjectFolderPicking = SystemProjectFolderPicker(),
+        workspaceResourcePicker: any WorkspaceResourcePicking = SystemWorkspaceResourcePicker(),
+        projectDirectoryMonitor: any ProjectDirectoryMonitoring = ProjectDirectoryMonitor()
+    ) {
         self.compiler = compiler
+        self.projectFolderPicker = projectFolderPicker
+        self.workspaceResourcePicker = workspaceResourcePicker
+        self.projectDirectoryMonitor = projectDirectoryMonitor
         source = ""
     }
 
@@ -47,6 +59,10 @@ final class WorkspaceViewModel: ObservableObject {
         guard hasOpenDocument else { return "Prism Plus" }
         let name = fileURL?.lastPathComponent ?? "Untitled.tex"
         return isDirty ? "\(name) — Edited" : name
+    }
+
+    var shouldShowDocumentOutline: Bool {
+        hasOpenDocument && !outlineItems.isEmpty
     }
 
     func updateSource(_ updatedSource: String, deferAutomaticCompilation: Bool = false) {
@@ -80,7 +96,7 @@ final class WorkspaceViewModel: ObservableObject {
             return
         }
         let sourceSnapshot = source
-        let projectDirectorySnapshot = projectRootURL
+        let projectDirectorySnapshot = fileURL?.deletingLastPathComponent() ?? projectRootURL
         compilationTask = Task { [compiler] in
             do {
                 try await Task.sleep(for: delay)
@@ -122,19 +138,18 @@ final class WorkspaceViewModel: ObservableObject {
 
     func openDocument() {
         guard confirmDiscardIfNeeded() else { return }
-
-        let panel = NSOpenPanel()
-        panel.title = "Open LaTeX Document"
-        panel.allowedContentTypes = [Self.texContentType]
-        panel.allowsOtherFileTypes = false
-        panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
+        guard let selection = workspaceResourcePicker.chooseResource() else { return }
 
         do {
-            try loadDocument(at: selectedURL)
-            projectRootURL = selectedURL.deletingLastPathComponent()
-            selectedExplorerDirectoryURL = projectRootURL
-            try refreshProject()
+            switch selection {
+            case .latexFile(let selectedURL):
+                try loadDocument(at: selectedURL)
+                projectRootURL = selectedURL.deletingLastPathComponent()
+                selectedExplorerDirectoryURL = projectRootURL
+                try refreshProject()
+            case .projectFolder(let selectedURL):
+                try loadProject(at: selectedURL)
+            }
         } catch {
             presentError(error)
         }
@@ -142,12 +157,7 @@ final class WorkspaceViewModel: ObservableObject {
 
     func openProject() {
         guard confirmDiscardIfNeeded() else { return }
-        let panel = NSOpenPanel()
-        panel.title = "Open LaTeX Project"
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
+        guard let selectedURL = projectFolderPicker.chooseFolder() else { return }
 
         do {
             try loadProject(at: selectedURL)
@@ -172,6 +182,22 @@ final class WorkspaceViewModel: ObservableObject {
         let projectURLs = projectNodes.flatMap(\.flattened).map(\.url)
         guard projectURLs.contains(node.url), node.url != projectRootURL else { return }
         selectedExplorerDirectoryURL = node.url
+    }
+
+    func expandProjectDirectory(_ node: ProjectNode) {
+        guard node.isDirectory else { return }
+        let currentNode = projectNodes.flatMap(\.flattened).first(where: { $0.url == node.url })
+        guard currentNode?.children == nil else { return }
+
+        do {
+            let children = try ProjectScanner.scan(rootURL: node.url)
+            projectNodes = projectNodes.map {
+                $0.replacingChildren(of: node.url, with: children)
+            }
+            restartProjectMonitoring()
+        } catch {
+            presentError(error)
+        }
     }
 
     func selectProjectNode(_ node: ProjectNode) {
@@ -273,6 +299,23 @@ final class WorkspaceViewModel: ObservableObject {
         }
     }
 
+    @discardableResult
+    func moveDroppedResources(_ sourceURLs: [URL], into directoryURL: URL) -> Bool {
+        guard let projectRootURL, !sourceURLs.isEmpty else { return false }
+        do {
+            _ = try ProjectResourceManager.moveImportedResources(
+                sourceURLs,
+                into: directoryURL,
+                projectRoot: projectRootURL
+            )
+            try refreshProject()
+            return true
+        } catch {
+            presentError(error)
+            return false
+        }
+    }
+
     func revealInFinder(_ url: URL) {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
@@ -282,7 +325,27 @@ final class WorkspaceViewModel: ObservableObject {
             projectNodes = []
             return
         }
+
+        let loadedDirectories = projectNodes.flatMap(\.flattened)
+            .filter { $0.isDirectory && $0.children != nil }
+            .map(\.url)
+            .sorted { $0.pathComponents.count < $1.pathComponents.count }
+
         projectNodes = try ProjectScanner.scan(rootURL: projectRootURL)
+        for directoryURL in loadedDirectories {
+            var isDirectory: ObjCBool = false
+            guard
+                FileManager.default.fileExists(
+                    atPath: directoryURL.path,
+                    isDirectory: &isDirectory
+                ), isDirectory.boolValue
+            else { continue }
+            let children = try ProjectScanner.scan(rootURL: directoryURL)
+            projectNodes = projectNodes.map {
+                $0.replacingChildren(of: directoryURL, with: children)
+            }
+        }
+        restartProjectMonitoring()
     }
 
     func refreshProjectFromUserAction() {
@@ -406,6 +469,32 @@ final class WorkspaceViewModel: ObservableObject {
         buildState = .idle
         isDirty = false
         hasOpenDocument = false
+    }
+
+    private func restartProjectMonitoring() {
+        guard let projectRootURL else {
+            projectDirectoryMonitor.stop()
+            return
+        }
+        let loadedDirectories = Set(
+            projectNodes.flatMap(\.flattened)
+                .filter { $0.isDirectory && $0.children != nil }
+                .map(\.url)
+        )
+        projectDirectoryMonitor.start(
+            watching: loadedDirectories.union([projectRootURL])
+        ) { [weak self] in
+            self?.scheduleProjectRefreshFromFileSystem()
+        }
+    }
+
+    private func scheduleProjectRefreshFromFileSystem() {
+        projectRefreshTask?.cancel()
+        projectRefreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            try? self?.refreshProject()
+        }
     }
 
     private func resourceContainsOpenDocument(_ node: ProjectNode) -> Bool {

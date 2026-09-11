@@ -41,13 +41,21 @@ actor TectonicCompiler: LaTeXCompiling {
             withIntermediateDirectories: true
         )
         defer { try? FileManager.default.removeItem(at: workspaceURL) }
+
+        if let projectDirectoryURL {
+            try stageProjectResources(
+                from: projectDirectoryURL,
+                into: workspaceURL,
+                excludingNames: [inputURL.lastPathComponent, outputDirectoryURL.lastPathComponent]
+            )
+        }
         try source.write(to: inputURL, atomically: true, encoding: .utf8)
 
         let invocation = TectonicCommandBuilder.makeInvocation(
             executableURL: executableURL,
             inputURL: inputURL,
             outputDirectoryURL: outputDirectoryURL,
-            currentDirectoryURL: projectDirectoryURL
+            currentDirectoryURL: workspaceURL
         )
         let processResult = try await processRunner.run(invocation)
         return CompilationArtifactLoader.load(
@@ -55,5 +63,26 @@ actor TectonicCompiler: LaTeXCompiling {
             sourceBaseName: "main",
             processResult: processResult
         )
+    }
+
+    private func stageProjectResources(
+        from projectDirectoryURL: URL,
+        into workspaceURL: URL,
+        excludingNames: Set<String>
+    ) throws {
+        let resourceURLs = try FileManager.default.contentsOfDirectory(
+            at: projectDirectoryURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+
+        for resourceURL in resourceURLs
+        where !excludingNames.contains(resourceURL.lastPathComponent) {
+            let stagedURL = workspaceURL.appendingPathComponent(resourceURL.lastPathComponent)
+            try FileManager.default.createSymbolicLink(
+                at: stagedURL,
+                withDestinationURL: resourceURL
+            )
+        }
     }
 }

@@ -14,7 +14,7 @@ struct PrismPlusApp: App {
                 }
                 .keyboardShortcut("n")
 
-                Button("Open…") {
+                Button("Open File or Folder…") {
                     NotificationCenter.default.post(name: .openLaTeXDocument, object: nil)
                 }
                 .keyboardShortcut("o")

@@ -66,12 +66,45 @@ struct TectonicCompilerTests {
         #expect(capture.invocation.arguments.contains("--untrusted"))
         #expect(capture.invocation.environment["TECTONIC_UNTRUSTED_MODE"] == "1")
     }
+
+    @Test("Project resources are staged beside the source visible to Tectonic")
+    func makesProjectImagesVisibleToCompiler() async throws {
+        let projectDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PrismPlusAssets-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: projectDirectory) }
+        try FileManager.default.createDirectory(
+            at: projectDirectory,
+            withIntermediateDirectories: true
+        )
+        let imageData = Data([0xFF, 0xD8, 0xFF, 0xD9])
+        try imageData.write(to: projectDirectory.appendingPathComponent("frog.jpg"))
+
+        let runner = SuccessfulProcessRunner()
+        let compiler = TectonicCompiler(
+            executableURL: URL(fileURLWithPath: "/test/tectonic"),
+            processRunner: runner
+        )
+
+        _ = try await compiler.compile(
+            source: #"\includegraphics{frog.jpg}"#,
+            projectDirectoryURL: projectDirectory
+        )
+
+        let capture = try #require(await runner.capture)
+        #expect(capture.siblingImageData == imageData)
+        #expect(
+            capture.invocation.currentDirectoryURL
+                == URL(fileURLWithPath: capture.invocation.arguments.last!)
+                .deletingLastPathComponent()
+        )
+    }
 }
 
 private actor SuccessfulProcessRunner: ProcessRunning {
     struct Capture: Sendable {
         let invocation: ProcessInvocation
         let source: String
+        let siblingImageData: Data?
     }
 
     private(set) var capture: Capture?
@@ -79,7 +112,14 @@ private actor SuccessfulProcessRunner: ProcessRunning {
     func run(_ invocation: ProcessInvocation) async throws -> ProcessExecutionResult {
         let inputURL = URL(fileURLWithPath: try #require(invocation.arguments.last))
         let source = try String(contentsOf: inputURL, encoding: .utf8)
-        capture = Capture(invocation: invocation, source: source)
+        let siblingImageData = try? Data(
+            contentsOf: inputURL.deletingLastPathComponent().appendingPathComponent("frog.jpg")
+        )
+        capture = Capture(
+            invocation: invocation,
+            source: source,
+            siblingImageData: siblingImageData
+        )
 
         let outdirIndex = try #require(invocation.arguments.firstIndex(of: "--outdir"))
         let outputDirectoryURL = URL(

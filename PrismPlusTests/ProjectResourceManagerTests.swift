@@ -112,6 +112,62 @@ struct ProjectResourceManagerTests {
         #expect(!FileManager.default.fileExists(atPath: originalURL.path))
         #expect(FileManager.default.fileExists(atPath: renamedURL.path))
     }
+
+    @Test("Dropped resources are moved into the selected project folder")
+    func movesDroppedResources() throws {
+        let fixture = try ProjectFixture()
+        defer { fixture.remove() }
+        let assets = try fixture.createDirectory(named: "assets")
+        let externalDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PrismPlusDrop-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: externalDirectory) }
+        try FileManager.default.createDirectory(
+            at: externalDirectory,
+            withIntermediateDirectories: true
+        )
+        let sourceURL = externalDirectory.appendingPathComponent("frog.jpg")
+        let imageData = Data([0xFF, 0xD8, 0xFF, 0xD9])
+        try imageData.write(to: sourceURL)
+
+        let movedURLs = try ProjectResourceManager.moveImportedResources(
+            [sourceURL],
+            into: assets,
+            projectRoot: fixture.root
+        )
+
+        let destinationURL = assets.appendingPathComponent("frog.jpg")
+        #expect(movedURLs == [destinationURL])
+        #expect(!FileManager.default.fileExists(atPath: sourceURL.path))
+        #expect(try Data(contentsOf: destinationURL) == imageData)
+    }
+
+    @Test("A conflicting drop is rejected before any resource is moved")
+    func rejectsConflictingDropWithoutPartialMove() throws {
+        let fixture = try ProjectFixture()
+        defer { fixture.remove() }
+        let externalDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PrismPlusConflict-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: externalDirectory) }
+        try FileManager.default.createDirectory(
+            at: externalDirectory,
+            withIntermediateDirectories: true
+        )
+        let firstSource = externalDirectory.appendingPathComponent("first.jpg")
+        let conflictingSource = externalDirectory.appendingPathComponent("existing.jpg")
+        try Data([1]).write(to: firstSource)
+        try Data([2]).write(to: conflictingSource)
+        try Data([3]).write(to: fixture.root.appendingPathComponent("existing.jpg"))
+
+        #expect(throws: ProjectResourceError.self) {
+            try ProjectResourceManager.moveImportedResources(
+                [firstSource, conflictingSource],
+                into: fixture.root,
+                projectRoot: fixture.root
+            )
+        }
+        #expect(FileManager.default.fileExists(atPath: firstSource.path))
+        #expect(FileManager.default.fileExists(atPath: conflictingSource.path))
+    }
 }
 
 private struct ProjectFixture {
